@@ -1,0 +1,10 @@
+name: gtfs-comparator
+
+services:
+  app:
+    build: .
+    image: gtfs-comparator:latest
+    restart: unless-stopped
+    volumes:
+      - ./dados-do-comparador:/app/data
+      - ./config.env:/app/config.env
