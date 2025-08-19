@@ -1,0 +1,7 @@
+name: gtfs-comparator
+
+services:
+  app:
+    build: .
+    image: gtfs-comparator:latest
+    restart: unless-stopped
