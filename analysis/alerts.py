@@ -1,3 +1,20 @@
+
+"""
+Este módulo gere a criação e o registo de alertas durante o processamento de dados.
+
+Funcionalidades principais:
+- Normaliza os nomes dos planos para garantir uma apresentação consistente nos alertas.
+- Inicializa um DataFrame de alertas com uma estrutura predefinida.
+- Adiciona alertas de forma incremental, incluindo tipo de erro, gravidade, descrição e percurso associado.
+
+Objetivo:
+- Centralizar e padronizar o registo de erros e inconsistências, facilitando a análise, validação e exportação dos alertas gerados.
+
+Outputs:
+- 1 tabela com a lista de todos os erros e inconsistências ao longo da comparação de planos.
+
+"""
+
 import pandas as pd
 
 # ========================================================================================================================================================

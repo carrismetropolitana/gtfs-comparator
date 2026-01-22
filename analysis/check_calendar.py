@@ -1,3 +1,22 @@
+"""
+Este módulo valida e compara os calendários GTFS entre o Plano de Oferta e o Plano de Operação.
+
+Funcionalidades principais:
+- Verifica a existência de datas com exception_type = 2 no ficheiro calendar_dates dentro de um período definido, gerando alertas de severidade MUITO GRAVE.
+- Normaliza e separa os calendários por plano (Oferta vs Operação).
+- Compara os calendários dos dois planos por data, analisando:
+    - Existência do dia em cada plano.
+    - Diferenças no período (period).
+    - Diferenças no tipo de dia (day_type).
+    - Classifica as diferenças detetadas por nível de severidade (OK, AVISO, CRÍTICO).
+    - Gera alertas automáticos sempre que são encontradas inconsistências face ao Plano de Oferta.
+
+Outputs:
+- 1 tabela consolidada com a comparação diária dos calendários entre os dois planos.
+- 1 tabela de alertas com a identificação das datas problemáticas, tipo de inconsistência e respetiva severidade.
+
+"""
+
 import pandas as pd
 import numpy as np
 from analysis.alerts import add_alert

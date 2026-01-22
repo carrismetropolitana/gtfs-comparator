@@ -1,8 +1,25 @@
+
+"""
+Este módulo calcula e compara a extensão dos percursos GTFS.
+
+Funcionalidades principais:
+- Calcula a extensão de cada percurso (pattern_id) a partir das shapes utilizando o valor máximo de shape_dist_traveled.
+- Calcula a extensão do percurso a partir das paragens (stop_times).
+- Compara as duas extensões dentro do mesmo plano (GTFS) e gera alertas quando a diferença é superior a 1 km.
+- Compara a extensão dos percursos entre os dois planos GTFS (Plano de Oferta vs Plano de Operação).
+- Calcula diferenças absolutas (km) e percentuais (%) e classifica a gravidade da diferença (OK, LIGEIRA, MODERADA, GRAVE).
+
+Outputs:
+- 1 folha (.xlsx) com a comparação final das extensões por percurso.
+- 1 folha (.xlsx) de alertas com inconsistências detetadas.
+
+"""
+
 import pandas as pd
 from analysis.alerts import add_alert
 
 # ========================================================================================================================================================
-# Garante que a distancia do GTFS está em Km
+# 1️⃣ Garante que a distancia do GTFS está em Km
 # ========================================================================================================================================================
 
 def _to_km_if_needed(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -14,7 +31,7 @@ def _to_km_if_needed(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return df
 
 # ========================================================================================================================================================
-# Calcula extensões
+# 2️⃣ Calcula extensões
 # ========================================================================================================================================================
 def compare_extension(
     gtfs_trips: pd.DataFrame,
@@ -28,14 +45,14 @@ def compare_extension(
     merged_data_stop_times = gtfs_trips[['trip_id', 'pattern_id']].merge(gtfs_stop_times[['trip_id', 'shape_dist_traveled']], on='trip_id')
 
     # -------------------------------------------------------------------------------------------
-    # Calcula a extensão pela shape
+    # 📌 Calcula a extensão pela shape
     # -------------------------------------------------------------------------------------------
     extension = merged_data.groupby('pattern_id')['shape_dist_traveled'].max().reset_index()
     extension = _to_km_if_needed(extension, 'shape_dist_traveled')
     extension.columns = ['pattern_id', f'shape_dist_traveled_{gtfs_name}']
 
     # -------------------------------------------------------------------------------------------
-    # Calcula a extensão pr paragens
+    # 📌 Calcula a extensão pr paragens
     # -------------------------------------------------------------------------------------------
 
     extension_stop_times = merged_data_stop_times.groupby('pattern_id')['shape_dist_traveled'].max().reset_index()
@@ -43,13 +60,13 @@ def compare_extension(
     extension_stop_times.columns = ['pattern_id', f'dist_traveled_stops_{gtfs_name}']
 
     # -------------------------------------------------------------------------------------------
-    # Compara as distancias entre planos
+    # 📌 Compara as distancias entre planos
     # -------------------------------------------------------------------------------------------
     compare_extensions_in_plan = extension.merge(extension_stop_times, on='pattern_id')
     compare_extensions_in_plan['diff'] = (compare_extensions_in_plan[f'dist_traveled_stops_{gtfs_name}'] - compare_extensions_in_plan[f'shape_dist_traveled_{gtfs_name}'])
 
     # -------------------------------------------------------------------------------------------
-    # Gera Alertas (diferença > 1km)
+    # 📌 Gera Alertas (diferença > 1km)
     # -------------------------------------------------------------------------------------------
 
     mask_alert = compare_extensions_in_plan['diff'].abs() > 1
@@ -66,7 +83,7 @@ def compare_extension(
     return extension, extension_stop_times, alerts_df
 
 # ========================================================================================================================================================
-# Compara extensões entre planos
+# 3️⃣ Compara extensões entre planos
 # ========================================================================================================================================================
 
 def compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df):
@@ -89,9 +106,6 @@ def compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df):
         alerts_df
     )
 
-    # ---------------------------------------
-    # Juntar tudo por percurso (inner merge)
-    # ---------------------------------------
     df = (
         ext_shape_oferta
         .merge(ext_shape_oper, on='pattern_id', how='inner')
@@ -99,25 +113,19 @@ def compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df):
         .merge(ext_stops_oper, on='pattern_id', how='inner')
     )
 
-    # ---------------------------------------
-    # Diferença absoluta (km)
-    # ---------------------------------------
-    df['Diferença absoluta (km)'] = (
-        df['shape_dist_traveled_POperação']
-        - df['shape_dist_traveled_POferta']
-    )
+    # -------------------------------------------------------------------------------------------
+    # 📌 Calcula a diferença absoluta (km)
+    # -------------------------------------------------------------------------------------------
+    df['Diferença absoluta (km)'] = (df['shape_dist_traveled_POperação'] - df['shape_dist_traveled_POferta'])
 
-    # ---------------------------------------
-    # Diferença percentual (%)
-    # ---------------------------------------
-    df['Diferença (%)'] = (
-        df['Diferença absoluta (km)']
-        / df['shape_dist_traveled_POferta']
-    ) * 100
+    # -------------------------------------------------------------------------------------------
+    # 📌 Calcula a diferença percentual (%)
+    # -------------------------------------------------------------------------------------------
+    df['Diferença (%)'] = (df['Diferença absoluta (km)'] / df['shape_dist_traveled_POferta']) * 100
 
-    # ---------------------------------------
-    # Classe da diferença
-    # ---------------------------------------
+    # -------------------------------------------------------------------------------------------
+    # 📌 Classes de alerta
+    # -------------------------------------------------------------------------------------------
     def classificar(x):
         x = abs(x)
         if x <= 1:
@@ -131,9 +139,9 @@ def compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df):
 
     df['Classe de diferença'] = df['Diferença (%)'].apply(classificar)
 
-    # ---------------------------------------
-    # Formato final
-    # ---------------------------------------
+    # -------------------------------------------------------------------------------------------
+    # 📌 Formatação final
+    # -------------------------------------------------------------------------------------------
     df = df.rename(columns={
         'pattern_id': 'Percurso',
         'shape_dist_traveled_POferta': 'Extensão shape_POferta',
