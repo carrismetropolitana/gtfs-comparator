@@ -100,7 +100,7 @@ def trips_per_date(calendar_dates, trips, start_date, end_date):
 
     return trip_counts
 
-#COMPARE CALENDAR FILES
+# COMPARE CALENDAR FILES
 def compare_calendar_dates(calendar_dates_gtfs_POferta, calendar_dates_gtfs_POperação):
     
     # Remove duplicates based on 'date', 'period', and 'day_type' for GTFS1
@@ -152,12 +152,6 @@ def check_trips_for_dates(calendar_dates, trips, gtfsname):
     merged_data = pd.merge(calendar_dates, trips, on='service_id', how='left')
 
     filtered_data = merged_data[merged_data['service_id'] == 2]
-    #print(filtered_data)
-    # Convert 'date' column to datetime for proper handling
-    #merged_data['date'] = pd.to_datetime(merged_data['date'])
-
-    # All dates from calendar_dates
-    #all_dates = merged_data['date'].unique()
 
     # Dates with associated trips 
     dates_with_trips = merged_data[merged_data['trip_id'].notnull()]['date'].unique()
@@ -200,7 +194,7 @@ def check_dates_in_interval(calendar_dates, start_date, end_date, gtfsname):
         missing_dates = [date.strftime('%Y-%m-%d') for date in missing_dates]
         add_alert(f"{gtfsname}","Número de circulações", 'MUITO GRAVE',f"Estão em falta as seguintes datas para o período definido:{list(missing_dates)}",'')
 
-#COMPARE STOP SEQUENCES WITHIN OFFER AND OPERATION PLANS
+# COMPARE STOP SEQUENCES WITHIN OFFER AND OPERATION PLANS
 def merge_and_check_stop_sequences(gtfs_trips, gtfs_stop_times, gtfs_stops, gtfs_name):
     # Merge relevant tables
     merged_data = pd.merge(gtfs_trips, gtfs_stop_times, on='trip_id')
@@ -280,7 +274,7 @@ def compare_extension(gtfs_trips, gtfs_shapes, gtfs_stop_times, gtfs_name):
                 
     return extension, extension_stop_times
 
-#COMPARE THE EXTENSION CALCULATED FROM STOP_TIMES AND SHAPES FOR EACH PATTERN 
+# COMPARE THE EXTENSION CALCULATED FROM STOP_TIMES AND SHAPES FOR EACH PATTERN 
 def compare_extension(gtfs_trips, gtfs_shapes, gtfs_stop_times, gtfs_name):
     # Merge relevant tables for extension comparison
     merged_data = pd.merge(gtfs_trips, gtfs_shapes, on='shape_id')
@@ -409,19 +403,20 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path):
 
 ### DEFINITIONS ###
 # Period of analysis
-start_date = '20250815'
+start_date = '20260116'
 end_date = '20260531'
 
 # Folder path
-target_folder = r'C:\\Users\\InêsClemente\\Downloads\\A4_agosto\\'
+target_folder = r'C:\\Users\\InêsClemente\\Downloads\\A1_JANEIRO_2026\\'
 
 # OFFER AND OPERATION PLANS
-GTFS_OFFERPLAN_name='GTFS_44_REF_v29_202507180927'
-GTFS_OPERATIONPLAN_name='20250807_44_YEAR_04_08_01'
+GTFS_OFFERPLAN_name='GTFS_41_REF_v29_202512091408'
+GTFS_OPERATIONPLAN_name='20251215_41_YEAR_04_50_01'
 
 # RESULT
-result_name='A4_analise_plano_anual_agosto_2025'
-#result_name='A2_analise_plano_mensal_julho_2025_v2'
+result_name='A1_analise_plano_anual_janeiro_2026'
+#result_name='A3_analise_plano_anual_dezembro_2025_v3'
+#result_name='A4_analise_plano_mensal_dezembro_2025'
 #result_name='A2_comparação_plano_oferta_maio_junho'
 excel_file_path = target_folder+ result_name +'.xlsx'
 
@@ -549,6 +544,8 @@ resumo_gtfs_POperação['vkm'] = resumo_gtfs_POperação['shape_dist_traveled_PL
 
 resumo_gtfs_POferta = pd.merge(pivot_table_gtfs_POferta,stops_count_gtfs_POferta, on=['pattern_id'], how='outer')
 resumo_gtfs_POferta = pd.merge(resumo_gtfs_POferta,extension_gtfs_POferta, on=['pattern_id'], how='outer')
+
+#if 'result' not in resumo_gtfs_POferta.columns: resumo_gtfs_POferta['result'] = 1
 resumo_gtfs_POferta['vkm'] = resumo_gtfs_POferta['shape_dist_traveled_PLANO DE OFERTA'] * resumo_gtfs_POferta['result']
 
 # COMPARISON OF THE OFFER PLANNED FOR EACH PLAN
