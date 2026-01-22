@@ -1,3 +1,26 @@
+
+"""
+Este módulo valida e compara as circulações por hora entre o Plano de Oferta e o Plano de Operação com base em dados GTFS.
+
+Funcionalidades principais:
+- Lê ficheiros GTFS (trips, stop_times e calendar_dates) a partir de pastas ou ficheiros ZIP.
+- Extrai, para cada trip, a hora de início da circulação com base na primeira paragem válida.
+- Associa cada circulação a uma data real através do service_id e do ficheiro calendar_dates.
+- Reduz os dados a circulações únicas por dia, percurso (pattern_id) e hora, ignorando o trip_id, garantindo uma comparação lógica entre planos.
+- Normaliza e valida os tipos de dados de data e hora, removendo valores inválidos e ordenando corretamente os dados para comparação temporal.
+- Associa cada circulação do Plano de Oferta à circulação mais próxima do Plano de Operação, no mesmo dia e percurso, utilizando merge_asof com tolerância temporal configurada (±30 minutos).
+- Calcula a diferença horária (em minutos) entre a Oferta e a Operação para cada circulação emparelhada.
+- Identifica e classifica inconsistências, incluindo:
+    - Circulações previstas que não ocorreram na Operação.
+    - Diferenças de horário entre os dois planos.
+- Gera alertas automáticos com diferentes níveis de severidade (GRAVE e MUITO GRAVE), de acordo com a magnitude das discrepâncias detetadas.
+
+Outputs:
+- 1 tabela consolidada com a comparação das circulações por dia, percurso e hora (Oferta vs Operação), incluindo a diferença em minutos.
+- Atualização da tabela de alertas com a identificação das circulações problemáticas, o tipo de inconsistência e a respetiva severidade.
+
+"""
+
 import os
 import pandas as pd
 import numpy as np
@@ -25,13 +48,6 @@ def read_gtfs_file(path, filename):
 # ========================================================================================================================================================
 # 2️⃣ Formata a hora
 # ========================================================================================================================================================
-
-# def parse_circulation_time(t):
-#     try:
-#         return pd.to_timedelta(t)
-#     except Exception:
-#         return pd.NaT
-
 
 def format_timedelta(td):
     if pd.isna(td):
