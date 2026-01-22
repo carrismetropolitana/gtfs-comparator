@@ -1,4 +1,4 @@
-# comparador_gtfs (refactor) ola
+# comparador_gtfs (refactor)
 
 Project to compare GTFS offer vs operation and upload results to SharePoint.
 
