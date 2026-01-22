@@ -1,30 +1,26 @@
 import pandas as pd
 from analysis.alerts import add_alert
 
-# COMPARE ROUTE FILES BETWEEN OFFER AND OPERATION PLANS
 def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
-    # Read routes files from both GTFS datasets
     routes_gtfs_POferta = gtfs_POferta_path
     routes_gtfs_POperação = gtfs_POperação_path
 
-    # Extract unique route IDs from both datasets
+    # Extract unique route IDs
     unique_routes_gtfs_POferta = set(routes_gtfs_POferta['route_id'])
     unique_routes_gtfs_POperação = set(routes_gtfs_POperação['route_id'])
 
-    # Find routes that are missing in one of the datasets
+    # Find missing routes
     missing_routes_gtfs_POferta = unique_routes_gtfs_POperação - unique_routes_gtfs_POferta
     missing_routes_gtfs_POperação = unique_routes_gtfs_POferta - unique_routes_gtfs_POperação
 
-   # print(missing_routes_gtfs_POferta)
-
-    # Print alerts for missing routes
+    # Alerts for missing routes
     if missing_routes_gtfs_POferta:
         alerts_df = add_alert(
             alerts_df,
             "PLANO DE OFERTA",
             "Rotas",
             'MUITO GRAVE',
-            f"As seguintes rotas não existem no Plano de Oferta:",
+            "As seguintes rotas não existem no Plano de Oferta:",
             f'{missing_routes_gtfs_POferta}'
         )
 
@@ -34,10 +30,11 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
             "PLANO DE OPERAÇÃO",
             "Rotas",
             'MUITO GRAVE',
-            f"As seguintes rotas não existem no Plano de Operação:",
+            "As seguintes rotas não existem no Plano de Operação:",
             f'{missing_routes_gtfs_POperação}'
         )
 
+    # Force correct dtypes once
     dtype_mapping = {
         'line_id': str, 'line_short_name': str, 'line_long_name': str,
         'agency_id': str, 'route_short_name': str, 'route_long_name': str,
@@ -63,18 +60,20 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
         'route_text_color'
     ]
 
-    # Iterate over each field and compare values
-    for index, row in merged_routes.iterrows():
-        route_id = row['route_id']
-        # Skip processing if the route_id is already in the missing routes
-        if route_id in missing_routes_gtfs_POferta or route_id in missing_routes_gtfs_POperação:
-            continue
+    # Compare only where route exists in both datasets
+    valid_routes_mask = ~merged_routes['route_id'].isin(missing_routes_gtfs_POferta | missing_routes_gtfs_POperação)
+    merged_routes_valid = merged_routes[valid_routes_mask]
 
-        for field in fields_to_compare:
-            value_POferta = str(row[f'{field}_POferta'])
-            value_POperação = str(row[f'{field}_POperação'])
+    # Compare each field
+    for field in fields_to_compare:
+        col_POferta = f'{field}_POferta'
+        col_POperação = f'{field}_POperação'
 
-            if value_POferta != value_POperação:
+        diff_mask = merged_routes_valid[col_POferta].astype(str) != merged_routes_valid[col_POperação].astype(str)
+
+        if diff_mask.any():
+            differing_routes = merged_routes_valid.loc[diff_mask, 'route_id']
+            for route_id in differing_routes:
                 alerts_df = add_alert(
                     alerts_df,
                     "PLANO DE OPERAÇÃO",
