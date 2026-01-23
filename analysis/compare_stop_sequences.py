@@ -1,9 +1,10 @@
 import pandas as pd
 from analysis.alerts import add_alert
 
-# ---------------------------------------
-# 1️⃣ Check stop sequences within a single plan
-# ---------------------------------------
+# ========================================================================================================================================================
+# 1️⃣ Valida a sequencia de paragens de cada plano
+# ========================================================================================================================================================
+
 def merge_and_check_stop_sequences(gtfs_trips, gtfs_stop_times, gtfs_name, alerts_df):
     """
     Verifica inconsistências de sequência de paragens dentro de um único plano (Oferta ou Operação).
@@ -15,7 +16,7 @@ def merge_and_check_stop_sequences(gtfs_trips, gtfs_stop_times, gtfs_name, alert
     inconsistent_stop_sequences = []
 
     for pattern_id, group in merged_data.groupby(['pattern_id']):
-        # Cria uma tupla de stop_id por trip_id
+    
         unique_stop_sequences = group.groupby('trip_id')[['stop_sequence', 'stop_id']] \
             .apply(lambda x: tuple(map(tuple, x.values))).unique()
         if len(unique_stop_sequences) > 1:
@@ -33,9 +34,10 @@ def merge_and_check_stop_sequences(gtfs_trips, gtfs_stop_times, gtfs_name, alert
     return stops_count, stop_sequence_perpattern, alerts_df
 
 
-# ---------------------------------------
+# ========================================================================================================================================================
 # 2️⃣ Check stop sequences between two plans
-# ---------------------------------------
+# ========================================================================================================================================================
+
 def merge_and_check_stop_sequences_between_plans(
     trips_offer, trips_oper,
     stop_times_offer, stop_times_oper,
@@ -93,3 +95,9 @@ def merge_and_check_stop_sequences_between_plans(
             )
 
     return alerts_df
+
+
+
+# -------------------------------------------------------------------------------------------
+    # 📌 Verifica se existem todas as colunas necessárias
+    # -------------------------------------------------------------------------------------------
