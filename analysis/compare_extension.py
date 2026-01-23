@@ -10,8 +10,8 @@ Funcionalidades principais:
 - Calcula diferenças absolutas (km) e percentuais (%) e classifica a gravidade da diferença (OK, LIGEIRA, MODERADA, GRAVE).
 
 Outputs:
-- 1 folha (.xlsx) com a comparação final das extensões por percurso.
-- 1 folha (.xlsx) de alertas com inconsistências detetadas.
+- 1 tabela com a comparação final das extensões por percurso.
+- 1 tabela de alertas com inconsistências detetadas.
 
 """
 

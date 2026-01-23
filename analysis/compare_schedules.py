@@ -1,51 +1,51 @@
 import pandas as pd
-from analysis.alerts import add_alert
-
-# COMPARE SCHEDULES BETWEEN OFFER AND OPERATION PLANS
-
-def get_departure_times_for_all_patterns_and_dates(gtfs_file, alerts_df):
-    # Load GTFS data into pandas dataframes
-    stops_df = pd.read_csv(gtfs_file + '/stops.txt')
-    stop_times_df = pd.read_csv(gtfs_file + '/stop_times.txt')
-    trips_df = pd.read_csv(gtfs_file + '/trips.txt')
-    calendar_dates_df = pd.read_csv(gtfs_file + '/calendar_dates.txt')
-
-    # Get unique dates from calendar_dates
-    unique_dates = calendar_dates_df['date'].unique()
-
-    # Initialize an empty dataframe to store results for all patterns and dates
-    all_patterns_dates_results = pd.DataFrame(columns=['date', 'pattern_id', 'departure_time', 'stop_name'])
-
-    # Iterate through each date
-    for date in unique_dates:
-        # Filter trips based on service_ids for the given date
-        service_ids_for_date = calendar_dates_df[calendar_dates_df['date'] == date]['service_id']
-        trips_for_date_df = trips_df[trips_df['service_id'].isin(service_ids_for_date)]
-
-        # Filter stop_times to get only the first stop for each trip
-        first_stop_times_df = stop_times_df.groupby('trip_id').first().reset_index()
-
-        # Merge first_stop_times with filtered trips to get pattern_id
-        merged_df = pd.merge(first_stop_times_df, trips_for_date_df, on='trip_id')
-
-        # Merge with stops_df to get stop_name for the first stop
-        merged_with_stops_df = pd.merge(merged_df, stops_df, on='stop_id')
-
-        # Add 'date' column
-        merged_with_stops_df['date'] = date
-
-        # Select necessary columns and sort by pattern_id and departure_time
-        departure_times_for_date = merged_with_stops_df[['date', 'pattern_id', 'departure_time', 'stop_name']].sort_values(by=['pattern_id', 'departure_time'])
-
-        # Append the result to all_patterns_dates_results dataframe
-        all_patterns_dates_results = all_patterns_dates_results.append(departure_times_for_date, ignore_index=True)
-    return all_patterns_dates_results, alerts_df
-
-# analysis/compare_schedules.py
-
-import pandas as pd
-from analysis.alerts import add_alert, normalize_plan_name
 import os
+from analysis.alerts import add_alert, normalize_plan_name
+
+# # ========================================================================================================================================================
+# # 1️⃣ Compara calendários, entre oferta e operação
+# # ========================================================================================================================================================
+
+# def get_departure_times_for_all_patterns_and_dates(gtfs_file, alerts_df):
+#     stops_df = pd.read_csv(gtfs_file + '/stops.txt')
+#     stop_times_df = pd.read_csv(gtfs_file + '/stop_times.txt')
+#     trips_df = pd.read_csv(gtfs_file + '/trips.txt')
+#     calendar_dates_df = pd.read_csv(gtfs_file + '/calendar_dates.txt')
+
+#     # -------------------------------------------------------------------------------------------
+#     # 📌 Obtem todas as datas únicas
+#     # -------------------------------------------------------------------------------------------
+    
+#     unique_dates = calendar_dates_df['date'].unique()
+
+#     # Initialize an empty dataframe to store results for all patterns and dates
+#     all_patterns_dates_results = pd.DataFrame(columns=['date', 'pattern_id', 'departure_time', 'stop_name'])
+
+#     # Iterate through each date
+#     for date in unique_dates:
+#         # Filter trips based on service_ids for the given date
+#         service_ids_for_date = calendar_dates_df[calendar_dates_df['date'] == date]['service_id']
+#         trips_for_date_df = trips_df[trips_df['service_id'].isin(service_ids_for_date)]
+
+#         # Filter stop_times to get only the first stop for each trip
+#         first_stop_times_df = stop_times_df.groupby('trip_id').first().reset_index()
+
+#         # Merge first_stop_times with filtered trips to get pattern_id
+#         merged_df = pd.merge(first_stop_times_df, trips_for_date_df, on='trip_id')
+
+#         # Merge with stops_df to get stop_name for the first stop
+#         merged_with_stops_df = pd.merge(merged_df, stops_df, on='stop_id')
+
+#         # Add 'date' column
+#         merged_with_stops_df['date'] = date
+
+#         # Select necessary columns and sort by pattern_id and departure_time
+#         departure_times_for_date = merged_with_stops_df[['date', 'pattern_id', 'departure_time', 'stop_name']].sort_values(by=['pattern_id', 'departure_time'])
+
+#         # Append the result to all_patterns_dates_results dataframe
+#         all_patterns_dates_results = all_patterns_dates_results.append(departure_times_for_date, ignore_index=True)
+#     return all_patterns_dates_results, alerts_df
+
 
 # ==================================================
 # COMPARAÇÃO DE HORÁRIOS ENTRE PLANOS DE OFERTA E OPERAÇÃO

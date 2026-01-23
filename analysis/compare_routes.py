@@ -1,5 +1,26 @@
+
+"""
+Este módulo compara as rotas (routes.txt) entre dois planos GTFS.
+
+Funcionalidades principais:
+- Identifica rotas que existem no Plano de Oferta e não existem no Plano de Operação e vice-versa.
+- Normaliza os tipos de dados dos campos relevantes para evitar inconsistências de comparação.
+- Compara os atributos das rotas comuns aos dois planos (ex.: line_id, agency_id, nomes, tipo de rota, cores).
+- Deteta diferenças campo a campo entre os dois planos para a mesma rota.
+- Gera alertas de gravidade "MUITO GRAVE" para rotas em falta ou com atributos divergentes.
+
+Outputs:
+- 1 tabela com as rotas combinadas dos dois planos GTFS (merge por route_id).
+- 1 tabela de alertas com todas as inconsistências detetadas entre os planos.
+
+"""
+
 import pandas as pd
 from analysis.alerts import add_alert
+
+# ========================================================================================================================================================
+# 1️⃣ Processa os dados
+# ========================================================================================================================================================
 
 def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
     routes_gtfs_POferta = gtfs_POferta_path
@@ -9,10 +30,15 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
     unique_routes_gtfs_POferta = set(routes_gtfs_POferta['route_id'])
     unique_routes_gtfs_POperação = set(routes_gtfs_POperação['route_id'])
 
-    # Find missing routes
+    # -------------------------------------------------------------------------------------------
+    # 📌 Deteta rotas em falta
+    # -------------------------------------------------------------------------------------------
     missing_routes_gtfs_POferta = unique_routes_gtfs_POperação - unique_routes_gtfs_POferta
     missing_routes_gtfs_POperação = unique_routes_gtfs_POferta - unique_routes_gtfs_POperação
 
+    # -------------------------------------------------------------------------------------------
+    # 📌 Gera um alerta se alguma rota estiver em falta
+    # -------------------------------------------------------------------------------------------
     # Alerts for missing routes
     if missing_routes_gtfs_POferta:
         alerts_df = add_alert(
@@ -34,7 +60,9 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
             f'{missing_routes_gtfs_POperação}'
         )
 
-    # Force correct dtypes once
+    # -------------------------------------------------------------------------------------------
+    # 📌 Normaliza os dados
+    # -------------------------------------------------------------------------------------------
     dtype_mapping = {
         'line_id': str, 'line_short_name': str, 'line_long_name': str,
         'agency_id': str, 'route_short_name': str, 'route_long_name': str,
@@ -43,8 +71,10 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
 
     routes_gtfs_POferta = routes_gtfs_POferta.astype(dtype_mapping)
     routes_gtfs_POperação = routes_gtfs_POperação.astype(dtype_mapping)
-
-    # Merge routes data based on 'route_id'
+   
+    # -------------------------------------------------------------------------------------------
+    # 📌 Junta as rotas dos dois GTFS
+    # -------------------------------------------------------------------------------------------
     merged_routes = pd.merge(
         routes_gtfs_POferta,
         routes_gtfs_POperação,
@@ -53,18 +83,27 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
         how='outer'
     )
 
+    # -------------------------------------------------------------------------------------------
+    # 📌 Campos a comparar
+    # -------------------------------------------------------------------------------------------
+
     fields_to_compare = [
         'line_id', 'line_short_name', 'line_long_name',
         'agency_id', 'route_short_name', 'route_long_name',
         'route_type', 'path_type', 'route_color',
         'route_text_color'
     ]
-
-    # Compare only where route exists in both datasets
+   
+    # -------------------------------------------------------------------------------------------
+    # 📌 Filtra apenas pelas rotas válidas
+    # -------------------------------------------------------------------------------------------
     valid_routes_mask = ~merged_routes['route_id'].isin(missing_routes_gtfs_POferta | missing_routes_gtfs_POperação)
     merged_routes_valid = merged_routes[valid_routes_mask]
 
-    # Compare each field
+    # -------------------------------------------------------------------------------------------
+    # 📌 Compara campo a campo
+    # -------------------------------------------------------------------------------------------
+  
     for field in fields_to_compare:
         col_POferta = f'{field}_POferta'
         col_POperação = f'{field}_POperação'
