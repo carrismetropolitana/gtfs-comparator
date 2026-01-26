@@ -40,7 +40,7 @@ END_DATE = '20260115'
 # 2️⃣ Nome do ficheiro
 # ========================================================================================================================================================
 
-RESULT_NAME = 'A4_analise_plano_mensal_janeiro_2026_teste'
+RESULT_NAME = 'A4_analise_plano_mensal_janeiro_2026_teste_testes'
 
 # ========================================================================================================================================================
 # 2️⃣ Outputs extra
@@ -50,10 +50,10 @@ RESULT_NAME = 'A4_analise_plano_mensal_janeiro_2026_teste'
 # 📌 Nome do ficheiro de exportação da sequência de paragens
 # -------------------------------------------------------------------------------------------
 
-EXPORT_STOP_SEQUENCE_FILENAME = "Paragens_Sequência_A4"
+EXPORT_STOP_SEQUENCE_FILENAME = "Paragens_Sequência_A4_testes"
 
 # -------------------------------------------------------------------------------------------
 # 📌 Nome do ficheiro de exportação do Total de Circulações e VKM
 # -------------------------------------------------------------------------------------------
  
-EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME = "Total de Circulações e VKM"
+EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME = "Total de Circulações e VKM_testes"
