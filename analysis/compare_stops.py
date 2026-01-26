@@ -1,3 +1,19 @@
+"""
+Este módulo compara as paragens entre o Plano de Oferta e o Plano de Operação.
+
+Funcionalidades principais:
+- Junta as paragens dos dois planos com base no stop_id, garantindo a deteção de paragens em falta ou divergentes.
+- Compara os atributos principais das paragens (stop_name, stop_lat e stop_lon).
+- Identifica diferenças de nomenclatura e de localização geográfica entre os planos.
+- Isola apenas as paragens que apresentam inconsistências entre Oferta e Operação.
+- Gera alertas associados ao Plano de Operação sempre que são detetadas diferenças.
+- Classifica todas as inconsistências como de gravidade “MUITO GRAVE”.
+
+Outputs:
+- 1 tabela com a lista de paragens que apresentam diferenças entre os planos.
+- Atualização da tabela de alertas com o detalhe das inconsistências por stop_id.
+"""
+
 import pandas as pd
 from analysis.alerts import add_alert
 
@@ -51,7 +67,7 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
                 f"Paragens com diferenças: {col}",
                 row['stop_id']
             )
-            
+
     # -------------------------------------------------------------------------------------------
     # 📌 Remove duplicados. Lista apenas as paragens com diferenças
     # -------------------------------------------------------------------------------------------

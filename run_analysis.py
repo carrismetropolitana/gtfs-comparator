@@ -1,3 +1,31 @@
+"""
+Este script orquestra toda a análise comparativa entre o Plano de Oferta e o Plano de Operação, desde a leitura GTFS até à exportação dos resultados.
+
+Funcionalidades principais:
+- Importa e aplica as configurações definidas (paths, nomes de ficheiros, período de análise e nomes de output).
+- Lê os ficheiros GTFS de ambos os planos e filtra o calendário pelo intervalo de análise.
+- Calcula o VKM contratual com base no ficheiro agency do plano de operação.
+- Verifica e gera alertas para datas com exception_type = 2 nos calendários.
+- Consolida e compara os calendários de oferta e operação, identificando divergências.
+- Valida a sequência de paragens por pattern_id dentro de cada plano e entre planos.
+- Identifica e alerta diferenças nas paragens (stop_name, stop_lat, stop_lon) entre os planos.
+- Compara rotas entre os dois planos e regista inconsistências.
+- Calcula e compara a extensão de shapes entre planos, com alertas associados.
+- Calcula circulações por padrão, período e tipo de dia, e constrói resumos por plano.
+- Constrói uma comparação global consolidada entre planos com o schema final de circulações e VKM.
+- Calcula um resumo de contrato (VKM) comparando valores dos planos com o VKM contratado.
+- Gera tabelas de análise (período de análise, circulações por dia e por hora).
+- Exporta os resultados para um ficheiro Excel com múltiplos sheets.
+- Exporta outputs extra em Excel: sequência de paragens e total de circulações/VKM.
+
+Outputs:
+- 1 ficheiro Excel consolidado com todos os resultados e comparações.
+- 1 ficheiro Excel com a sequência de paragens do Plano de Oferta.
+- 1 ficheiro Excel com o total de circulações e VKM (comparação global).
+- 1 DataFrame de alertas com todas as inconformidades detetadas ao longo do processo.
+"""
+
+
 import os
 import pandas as pd
 import numpy as np
@@ -214,44 +242,6 @@ save_to_excel(
 
 print(f"✅ Análise concluída. Resultados guardados em {excel_file_path}")
 
-# # ======================================================================================================================================================================
-# # 1️⃣6️⃣ Output extra – Sequência de Paragens (Plano de Oferta)
-# # ======================================================================================================================================================================
-
-# # Definir identificador do plano (ex: A1, A2, etc.)
-# PLANO_ANALISADO = "A1"   # 👈 podes tornar isto dinâmico depois
-
-# export_filename = EXPORT_STOP_SEQUENCE_FILENAME.format(
-#     plan=PLANO_ANALISADO
-# )
-
-# export_path = os.path.join(TARGET_FOLDER, f"{export_filename}.xlsx")
-
-# # Adiciona stop_name à tabela existente
-# stop_sequence_oferta_export = (stop_sequence_oferta.merge(gtfs_oferta['stops'][['stop_id', 'stop_name']], on='stop_id', how='left'))
-
-# # Guardar o novo output
-# with pd.ExcelWriter(export_path, engine="xlsxwriter") as writer: stop_sequence_oferta_export.to_excel(writer, sheet_name="Sequência Paragens", index=False)
-
-# print(f"📄 Sequência de paragens exportada: {export_path}")
-
-# # ========================================================================================================================================================
-# # 1️⃣7️⃣ Output extra – Total Circulações e VKM
-# # ========================================================================================================================================================
-
-# PLANO_ANALISADO = "A1"
-
-# export_filename = EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME.format(plan=PLANO_ANALISADO)
-
-# export_path = os.path.join(TARGET_FOLDER, f"{export_filename}.xlsx")
-
-# print(f"📄 Sequência de paragens exportada: {export_path}")
-
-# # 👉 Exportar diretamente o DataFrame correto
-# export_total_circulacoes_vkm(df=merged_all, output_excel_path=export_path)
-
-# print(f"📄 Total de Circulações e VKM exportados: {export_path}")
-
 # ======================================================================================================================================================================
 # 1️⃣6️⃣ Output extra – Sequência de Paragens (Plano de Oferta)
 # ======================================================================================================================================================================
@@ -283,14 +273,3 @@ export_total_circulacoes_vkm(
 )
 
 print(f"📄 Total de Circulações e VKM exportados: {export_path_total}")
-
-
-
-
-# ========================================================================================================================================================
-# 2️⃣ Compara a sequênia de paragens entre planos
-# ========================================================================================================================================================
-
-    # -------------------------------------------------------------------------------------------
-    # 📌 Para os patterns em comum verifica a sequências de paragens
-    # -------------------------------------------------------------------------------------------

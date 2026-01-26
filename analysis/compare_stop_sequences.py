@@ -1,3 +1,24 @@
+
+"""
+Este módulo valida e compara as sequências de paragens definidas nos planos GTFS.
+
+Funcionalidades principais:
+- Junta os ficheiros trips e stop_times para análise detalhada das sequências de paragens.
+- Verifica, dentro de cada plano, se todas as viagens associadas ao mesmo pattern_id seguem a mesma ordem de paragens.
+- Identifica inconsistências de stop_sequence entre viagens do mesmo percurso.
+- Conta e organiza as paragens e respetivas sequências por pattern_id.
+- Compara as sequências de paragens entre os planos de Oferta e de Operação.
+- Deteta patterns em falta num dos planos e gera alertas específicos para o plano afetado.
+- Valida se os patterns comuns entre planos têm sequências de paragens idênticas.
+- Regista alertas com nível de gravidade “MUITO GRAVE” sempre que são detetadas inconsistências.
+
+Outputs:
+- 1 tabela com o número de paragens e respetivas sequências por pattern_id.
+- 1 tabela detalhada com a associação entre pattern_id, stop_id e stop_sequence.
+- Atualização da tabela de alertas com todas as inconsistências detetadas, por plano e pattern_id.
+
+"""
+
 import pandas as pd
 from analysis.alerts import add_alert
 
@@ -80,7 +101,7 @@ def merge_and_check_stop_sequences_between_plans(
             pattern
         )
     # -------------------------------------------------------------------------------------------
-    # 📌 Para os patterns em comum verifica a sequências de paragens
+    # 📌 Verifica a sequências de paragens para os patterns em comum
     # -------------------------------------------------------------------------------------------
     
     common_patterns = patterns_offer & patterns_oper

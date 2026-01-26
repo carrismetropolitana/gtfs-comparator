@@ -1,3 +1,19 @@
+"""
+Este módulo define as constantes de configuração usadas na análise GTFS.
+
+Funcionalidades principais:
+- Define o caminho base onde estão armazenados os ficheiros GTFS a analisar.
+- Especifica os nomes dos ficheiros GTFS para os planos de Oferta e Operação.
+- Define o período de análise (data de início e data de fim) no formato YYYYMMDD.
+- Define o nome base do ficheiro de resultados gerado pelo processo de análise.
+- Configura nomes padrão para ficheiros de exportação adicionais:
+  - Sequência de paragens
+  - Total de circulações e VKM
+
+Outputs:
+- Conjunto de constantes reutilizáveis que orientam o carregamento dos dados e a geração dos ficheiros de saída.
+"""
+
 from pathlib import Path 
 
 # ========================================================================================================================================================

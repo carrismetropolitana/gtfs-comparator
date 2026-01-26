@@ -1,3 +1,26 @@
+"""
+Este módulo analisa a distribuição de viagens por dia e valida a consistência das paragens entre os planos GTFS.
+
+Funcionalidades principais:
+- Valida a existência das colunas essenciais nos ficheiros trips e calendar_dates.
+- Converte e normaliza as datas do calendário para o formato de data.
+- Considera apenas os dias ativos (exception_type = 1) definidos no calendário.
+- Filtra o período de análise com base numa data inicial e final.
+- Associa serviços ativos às viagens correspondentes.
+- Conta o número de viagens por pattern_id e por dia.
+- Gera uma tabela pivot com o número de viagens por percurso e por data.
+- Garante a presença de todas as datas no intervalo analisado, mesmo quando não existem viagens.
+- Compara as paragens entre os planos de Oferta e Operação com base no stop_id.
+- Valida diferenças nos atributos das paragens (stop_name, stop_lat, stop_lon).
+- Identifica e devolve apenas as paragens com inconsistências entre os planos.
+- Regista alertas de gravidade “MUITO GRAVE” para cada paragem com diferenças detetadas.
+
+Outputs:
+- 1 tabela pivot com o número de viagens por pattern_id e por data.
+- 1 tabela com a lista de paragens que apresentam diferenças entre os planos.
+- Atualização da tabela de alertas com as inconsistências identificadas, por pattern_id e stop_id.
+"""
+
 import pandas as pd
 from analysis.alerts import init_alerts_df, add_alert
 

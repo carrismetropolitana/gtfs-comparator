@@ -1,3 +1,25 @@
+"""
+Este módulo gere a exportação dos resultados de análise e validação GTFS para ficheiros Excel.
+
+Funcionalidades principais:
+- Exporta a sequência de paragens por pattern_id, incluindo stop_id e stop_name.
+- Gera ficheiros Excel auxiliares para outputs específicos, como total de circulações e VKM.
+- Consolida todos os resultados de análise num único ficheiro Excel.
+- Cria automaticamente sheets distintas para cada tipo de comparação e análise.
+- Verifica a existência e o conteúdo de cada DataFrame antes de o exportar.
+- Insere mensagens de aviso nos sheets quando não existem dados disponíveis.
+- Organiza os resultados por áreas funcionais (alertas, resumos, comparações e análises).
+- Guarda comparações entre planos de Oferta e Operação (calendários, paragens, extensões e rotas).
+- Inclui análises de circulações por hora e por data.
+- Exporta sequências de paragens separadamente para cada plano.
+- Estrutura resumos finais independentes para o Plano de Oferta e para o Plano de Operação.
+
+Outputs:
+- 1 ficheiro Excel consolidado com múltiplos sheets de análise e validação.
+- Sheets específicos para alertas, resumos globais, comparações entre planos e outputs detalhados.
+- Ficheiros Excel auxiliares para outputs adicionais (sequência de paragens, circulações e VKM).
+"""
+
 import pandas as pd
 import numpy as np
 

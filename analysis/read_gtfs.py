@@ -1,3 +1,21 @@
+"""
+Este módulo trata da leitura dos ficheiros GTFS e do cálculo de parâmetros contratuais associados.
+
+Funcionalidades principais:
+- Lê os ficheiros GTFS a partir de um diretório de entrada.
+- Permite definir dinamicamente quais as tabelas GTFS a carregar.
+- Garante a correta leitura de identificadores (ex.: stop_id) como texto.
+- Filtra o ficheiro calendar_dates por um intervalo temporal específico, quando definido.
+- Converte automaticamente as datas do calendário para o formato de data.
+- Devolve um dicionário com os DataFrames GTFS carregados em memória.
+- Analisa o ficheiro agency para identificar o contrato associado ao plano.
+- Determina o valor de Veículos-Kilómetro (VKM) contratados com base no agency_id.
+
+Outputs:
+- 1 dicionário com os DataFrames GTFS carregados (stops, routes, trips, stop_times, shapes, calendar_dates, agency).
+- 1 valor numérico correspondente aos VKM do contrato identificado.
+"""
+
 import os
 import pandas as pd
 

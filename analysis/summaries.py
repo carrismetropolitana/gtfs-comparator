@@ -1,3 +1,29 @@
+"""
+Este módulo calcula e consolida métricas de circulações, VKM e comparações entre os planos de Oferta e Operação, incluindo alertas de qualidade de dados.
+
+Funcionalidades principais:
+- Define o schema final do relatório “Total circulações e VKM”, com colunas normalizadas para ambos os planos.
+- Calcula a distância real (km) de cada viagem com base no shape correspondente.
+- Determina o número de dias ativos de cada serviço dentro do período de análise.
+- Calcula os VKM por viagem e serviço, considerando a distância e os dias ativos.
+- Conta as circulações existentes por pattern_id, período do ano e tipo de dia (day_type).
+- Constrói um resumo por plano (Oferta / Operação) agregando circulações, número de paragens e extensão do shape.
+- Calcula o VKM total anual por percurso, a partir da extensão do shape e do número de circulações.
+- Gera alertas sempre que forem detetadas datas com exception_type = 2 nos calendar_dates de qualquer plano.
+- Consolida alertas por plano e cria uma tabela de alertas completa.
+- Gera uma tabela comparativa global entre os planos, normalizando colunas e garantindo o schema final.
+- Cria um resumo de contrato comparando VKM dos planos com o VKM contratado.
+- Produz uma tabela com o período de análise e a data de execução.
+- Fornece os resumos detalhados finais para cada plano.
+
+Outputs:
+- 1 DataFrame com o resumo de circulações e VKM por percurso, período e dia tipo, para cada plano.
+- 1 DataFrame comparativo consolidado (Oferta vs Operação) com o schema final definido.
+- 1 DataFrame de alertas com todas as inconformidades detetadas.
+- 1 DataFrame com o resumo do contrato (VKM) e diferenças relativas.
+- 1 DataFrame com o período de análise e data de execução.
+"""
+
 import pandas as pd
 from analysis.alerts import add_alert, init_alerts_df
 import numpy as np
