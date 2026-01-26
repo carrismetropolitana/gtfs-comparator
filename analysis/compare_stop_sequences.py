@@ -50,42 +50,45 @@ def merge_and_check_stop_sequences_between_plans(
     merged_offer = pd.merge(trips_offer, stop_times_offer, on='trip_id')
     merged_oper = pd.merge(trips_oper, stop_times_oper, on='trip_id')
     
-    # Obter os pattern_id de cada plano
+    # Obtem os pattern_id de cada plano
     patterns_offer = set(merged_offer['pattern_id'].unique())
     patterns_oper = set(merged_oper['pattern_id'].unique())
     
-    # Patterns presentes na oferta mas não na operação
+    # -------------------------------------------------------------------------------------------
+    # 📌 Identifica os patterns ausentes no plano de oferta e de operação
+    # -------------------------------------------------------------------------------------------
+
     missing_in_oper = patterns_offer - patterns_oper
     for pattern in missing_in_oper:
         alerts_df = add_alert(
             alerts_df,
-            "PLANO DE OPERAÇÃO",  # ← alerta é para o plano de operação
+            "PLANO DE OPERAÇÃO", 
             'Sequência de paragens',
             'MUITO GRAVE',
             f'Pattern {pattern} presente no plano de oferta mas não no plano de operação',
             pattern
         )
 
-    # Patterns presentes na operação mas não na oferta
     missing_in_offer = patterns_oper - patterns_offer
     for pattern in missing_in_offer:
         alerts_df = add_alert(
             alerts_df,
-            "PLANO DE OFERTA",  # ← alerta é para o plano de oferta
+            "PLANO DE OFERTA",  
             'Sequência de paragens',
             'MUITO GRAVE',
             f'Pattern {pattern} presente no plano de operação mas não no plano de oferta',
             pattern
         )
-
-    # Patterns comuns: verificar se as sequências de paragens são idênticas
+    # -------------------------------------------------------------------------------------------
+    # 📌 Para os patterns em comum verifica a sequências de paragens
+    # -------------------------------------------------------------------------------------------
+    
     common_patterns = patterns_offer & patterns_oper
     for pattern in common_patterns:
         seq_offer = merged_offer[merged_offer['pattern_id'] == pattern].sort_values('stop_sequence')['stop_id'].tolist()
         seq_oper = merged_oper[merged_oper['pattern_id'] == pattern].sort_values('stop_sequence')['stop_id'].tolist()
         if seq_offer != seq_oper:
-            # O alerta deve apontar para o plano onde a diferença foi encontrada, neste caso usamos operação
-            alerts_df = add_alert(
+                alerts_df = add_alert(
                 alerts_df,
                 "PLANO DE OPERAÇÃO",
                 'Sequência de paragens',
@@ -95,9 +98,3 @@ def merge_and_check_stop_sequences_between_plans(
             )
 
     return alerts_df
-
-
-
-# -------------------------------------------------------------------------------------------
-    # 📌 Verifica se existem todas as colunas necessárias
-    # -------------------------------------------------------------------------------------------

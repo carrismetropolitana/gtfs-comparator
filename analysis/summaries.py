@@ -2,9 +2,9 @@ import pandas as pd
 from analysis.alerts import add_alert, init_alerts_df
 import numpy as np
 
-# ==================================================
-# SCHEMA FINAL — folha "Total circulações e VKM"
-# ==================================================
+# ========================================================================================================================================================
+# 0️⃣ Schema final — folha "Total circulações e VKM"
+# ========================================================================================================================================================
 
 TOTAL_CIRCULACOES_VKM_COLUMNS = [
     'Percurso',
@@ -40,28 +40,19 @@ COLUMN_RENAME_MAP = {
     'shape_dist_traveled_POperação': 'Extensão shape_POperação',
 }
 
-# ==================================================
-# VKM — CÁLCULO CORRETO (BASE TRIP)
-# ==================================================
+# ========================================================================================================================================================
+# 1️⃣ Calcula a distância real de cada trip
+# ========================================================================================================================================================
 
 def calculate_trip_distance_km(trips, shapes):
-    shape_dist = (
-        shapes
-        .groupby('shape_id')['shape_dist_traveled']
-        .max()
-        .reset_index()
-    )
+    shape_dist = (shapes.groupby('shape_id')['shape_dist_traveled'].max().reset_index())
+    shape_dist['distance_km'] = shape_dist['shape_dist_traveled'].apply(lambda x: x / 1000 if x > 1000 else x)
 
-    shape_dist['distance_km'] = shape_dist['shape_dist_traveled'].apply(
-        lambda x: x / 1000 if x > 1000 else x
-    )
+    return trips.merge(shape_dist[['shape_id', 'distance_km']], on='shape_id', how='left')[['trip_id', 'pattern_id', 'service_id', 'distance_km']]
 
-    return trips.merge(
-        shape_dist[['shape_id', 'distance_km']],
-        on='shape_id',
-        how='left'
-    )[['trip_id', 'pattern_id', 'service_id', 'distance_km']]
-
+# ========================================================================================================================================================
+# 2️⃣ Calcula o número de dias que cada serviço esteve ativo
+# ========================================================================================================================================================
 
 def calculate_service_days(calendar_dates, start_date, end_date):
     calendar_dates = calendar_dates.copy()
@@ -72,116 +63,59 @@ def calculate_service_days(calendar_dates, start_date, end_date):
         (calendar_dates['date'] <= pd.to_datetime(end_date))
     )
 
-    return (
-        calendar_dates[mask]
-        .groupby('service_id')['date']
-        .nunique()
-        .reset_index(name='n_days')
-    )
+    return (calendar_dates[mask].groupby('service_id')['date'].nunique().reset_index(name='n_days'))
 
+# ========================================================================================================================================================
+# 3️⃣ Calcula os VKM contratuais
+# ========================================================================================================================================================
 
 def calculate_vkm(gtfs, start_date, end_date):
-    trips_dist = calculate_trip_distance_km(
-        gtfs['trips'],
-        gtfs['shapes']
-    )
+    trips_dist = calculate_trip_distance_km(gtfs['trips'], gtfs['shapes'])
+    service_days = calculate_service_days(gtfs['calendar_dates'], start_date, end_date)
 
-    service_days = calculate_service_days(
-        gtfs['calendar_dates'],
-        start_date,
-        end_date
-    )
+    return (trips_dist.merge(service_days, on='service_id', how='inner').assign(vkm=lambda df: df.distance_km * df.n_days))
 
-    return (
-        trips_dist
-        .merge(service_days, on='service_id', how='inner')
-        .assign(vkm=lambda df: df.distance_km * df.n_days)
-    )
-
-# ==================================================
-# 1️⃣ Cálculo de circulações
-# ==================================================
+# ========================================================================================================================================================
+# 4️⃣ Calcula as circulações (existentes) por pattern_id; period; e day_type
+# ========================================================================================================================================================
 
 def compute_trips_per_pattern_day_type_period(trips_df, calendar_dates_df):
     trips_calendar = pd.merge(trips_df, calendar_dates_df, on='service_id')
 
-    trips_per_pattern = (
-        trips_calendar
-        .groupby(['pattern_id', 'service_id', 'period', 'day_type'])['trip_id']
-        .nunique()
-        .reset_index()
-    )
+    trips_per_pattern = (trips_calendar.groupby(['pattern_id', 'service_id', 'period', 'day_type'])['trip_id'].nunique().reset_index())
+    days_per_pattern = (trips_calendar.groupby(['pattern_id', 'service_id', 'period', 'day_type'])['date'].nunique().reset_index().rename(columns={'date': 'days_count'}))
 
-    days_per_pattern = (
-        trips_calendar
-        .groupby(['pattern_id', 'service_id', 'period', 'day_type'])['date']
-        .nunique()
-        .reset_index()
-        .rename(columns={'date': 'days_count'})
-    )
-
-    merged_result = pd.merge(
-        days_per_pattern,
-        trips_per_pattern,
-        on=['pattern_id', 'service_id', 'period', 'day_type'],
-        how='left'
-    )
-
+    merged_result = pd.merge(days_per_pattern, trips_per_pattern, on=['pattern_id', 'service_id', 'period', 'day_type'], how='left')
     merged_result['result'] = merged_result['days_count'] * merged_result['trip_id']
 
     return merged_result
 
-# ==================================================
-# 2️⃣ Resumo por plano (Oferta / Operação)
-# ==================================================
+# ========================================================================================================================================================
+# 5️⃣ Constrói o resumo por plano (Oferta / Operação)
+# ========================================================================================================================================================
 
 def build_plan_summary(merged_trips_result, stops_comparison_result, extension_df, plan_name):
-    pivot_table = (
-        merged_trips_result
-        .pivot_table(
-            index=['pattern_id', 'period', 'day_type'],
-            values='result',
-            aggfunc='sum'
-        )
-        .reset_index()
-    )
+    pivot_table = (merged_trips_result.pivot_table(index=['pattern_id', 'period', 'day_type'], values='result', aggfunc='sum').reset_index())
 
-    resumo = pd.merge(
-        pivot_table,
-        stops_comparison_result,
-        on='pattern_id',
-        how='outer'
-    )
-
-    resumo = pd.merge(
-        resumo,
-        extension_df,
-        on='pattern_id',
-        how='outer'
-    )
+    resumo = pd.merge(pivot_table, stops_comparison_result, on='pattern_id', how='outer')
+    resumo = pd.merge(resumo, extension_df, on='pattern_id', how='outer')
 
     for col in ['shape_dist_traveled', 'dist_traveled_stops', 'result']:
         if col not in resumo.columns:
             resumo[col] = 0
         resumo[col] = pd.to_numeric(resumo[col], errors='coerce').fillna(0)
 
-    # ⚠️ VKM aqui é apenas INDICATIVO (não contratual)
     resumo['VKM total ano'] = resumo['shape_dist_traveled'] * resumo['result']
 
     resumo['Plano'] = plan_name
 
-    resumo = pd.merge(
-        resumo,
-        merged_trips_result[['pattern_id', 'period', 'day_type', 'service_id', 'days_count', 'trip_id']],
-        on=['pattern_id', 'period', 'day_type'],
-        how='left'
-    )
+    resumo = pd.merge(resumo, merged_trips_result[['pattern_id', 'period', 'day_type', 'service_id', 'days_count', 'trip_id']], on=['pattern_id', 'period', 'day_type'], how='left')
 
     return resumo
 
-# ==================================================
-# 3️⃣ Alertas — exception_type == 2
-# ==================================================
+# ========================================================================================================================================================
+# 6️⃣ Gera um alerta  sempre que encontrar alguma data classificada com -> exception_type = 2
+# ========================================================================================================================================================
 
 def add_exception_type_alerts(calendar_dates_gtfs, plan_name, alerts_df):
     exception_dates = calendar_dates_gtfs[calendar_dates_gtfs['exception_type'] == 2]['date']
@@ -199,9 +133,9 @@ def add_exception_type_alerts(calendar_dates_gtfs, plan_name, alerts_df):
 
     return alerts_df
 
-# ==================================================
-# 4️⃣ Alertas gerais
-# ==================================================
+# ========================================================================================================================================================
+# 7️⃣ Gera um alerta por cada problemática
+# ========================================================================================================================================================
 
 def build_alerts(calendar_dates_gtfs_POferta, calendar_dates_gtfs_POperação, alerts_df=None):
     if alerts_df is None:
@@ -225,9 +159,9 @@ def build_alerts(calendar_dates_gtfs_POferta, calendar_dates_gtfs_POperação, a
 
     return alerts_df
 
-# ==================================================
-# 5️⃣ Comparação global
-# ==================================================
+# ========================================================================================================================================================
+# 8️⃣ Gera uma tabela comparativa - Oferta vs. Operação
+# ========================================================================================================================================================
 
 def build_global_comparison(resumo_oferta, resumo_operacao):
     merged_all = pd.merge(
@@ -257,9 +191,9 @@ def build_global_comparison(resumo_oferta, resumo_operacao):
 
     return merged_all[TOTAL_CIRCULACOES_VKM_COLUMNS]
 
-# ==================================================
-# 6️⃣ Resumo de contrato (VKM CORRETO)
-# ==================================================
+# ========================================================================================================================================================
+# 9️⃣ Resumo de contrato (VKM)
+# ========================================================================================================================================================
 
 def build_contract_summary(
     gtfs_POferta,
@@ -286,9 +220,9 @@ def build_contract_summary(
         'Diferença relativa ao contrato (%)': [diff_poferta_pct, diff_poperacao_pct, 0]
     })
 
-# ==================================================
-# 7️⃣ Período da análise
-# ==================================================
+# ========================================================================================================================================================
+# 1️⃣0️⃣ Período da análise
+# ========================================================================================================================================================
 
 def build_analysis_period_table(start_date, end_date):
     return pd.DataFrame({
@@ -299,9 +233,9 @@ def build_analysis_period_table(start_date, end_date):
         'Data da Análise': [pd.Timestamp.now().strftime('%d/%m/%Y')]
     })
 
-# ==================================================
-# 8️⃣ Ajuste final de resumos
-# ==================================================
+# ========================================================================================================================================================
+# 1️⃣1️⃣ Estutura final
+# ========================================================================================================================================================
 
 def build_detailed_plan_summaries(resumo_oferta, resumo_operacao):
     return resumo_oferta.copy(), resumo_operacao.copy()

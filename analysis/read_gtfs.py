@@ -1,6 +1,10 @@
 import os
 import pandas as pd
 
+# ========================================================================================================================================================
+# 1️⃣ Lê os ficheiros GTFS
+# ========================================================================================================================================================
+
 def read_gtfs(file_path, tables=None, calendar_dates_start_date=None, calendar_dates_end_date=None):
     """
     Lê os ficheiros GTFS e devolve um dicionário com os dataframes.
@@ -29,11 +33,13 @@ def read_gtfs(file_path, tables=None, calendar_dates_start_date=None, calendar_d
 
     return gtfs_data
 
-
+# ========================================================================================================================================================
+# 1️⃣ Calcula os VKM do contrato
+# ========================================================================================================================================================
 
 def process_agency_file(agency_df):
     """
-    Retorna o VKM do contrato com base no agency_id.
+    Devolve o número de VKM do contrato com base no agency_id.
     """
     vkm_contrato = None
     if (agency_df['agency_id'] == 41).any():
@@ -45,5 +51,3 @@ def process_agency_file(agency_df):
     elif (agency_df['agency_id'] == 44).any():
         vkm_contrato = 15128877
     return vkm_contrato
-
-

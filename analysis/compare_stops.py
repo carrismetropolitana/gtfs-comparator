@@ -1,6 +1,10 @@
 import pandas as pd
 from analysis.alerts import add_alert
 
+# ========================================================================================================================================================
+# 1️⃣ Compara as paragens entre planos
+# ========================================================================================================================================================
+
 def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
     """
     Compara paragens entre Plano de Oferta e Plano de Operação.
@@ -11,7 +15,10 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
         from analysis.alerts import init_alerts_df
         alerts_df = init_alerts_df()
 
-    # Merge das paragens pelo stop_id
+    # -------------------------------------------------------------------------------------------
+    # 📌 Junta as paragens de oferta com operação por stop_id
+    # -------------------------------------------------------------------------------------------
+
     df_merged = pd.merge(
         df_oferta,
         df_operacao,
@@ -20,7 +27,10 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
         suffixes=('_POferta', '_POperacao')
     )
 
-    # Comparar colunas relevantes
+    # -------------------------------------------------------------------------------------------
+    # 📌 Compara os campos: stop_name; stop_lat; stop_lon
+    # -------------------------------------------------------------------------------------------
+ 
     columns_to_compare = ['stop_name', 'stop_lat', 'stop_lon']
     diffs = pd.DataFrame()
 
@@ -28,7 +38,10 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
         mask_diff = df_merged[f"{col}_POferta"] != df_merged[f"{col}_POperacao"]
         diffs = pd.concat([diffs, df_merged[mask_diff]])
 
-        # Adicionar alertas para cada diferença
+    # -------------------------------------------------------------------------------------------
+    # 📌 Adiciona alertas de acordo com as diferenças encontradas
+    # -------------------------------------------------------------------------------------------
+        
         for _, row in df_merged[mask_diff].iterrows():
             alerts_df = add_alert(
                 alerts_df,
@@ -38,8 +51,11 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
                 f"Paragens com diferenças: {col}",
                 row['stop_id']
             )
+            
+    # -------------------------------------------------------------------------------------------
+    # 📌 Remove duplicados. Lista apenas as paragens com diferenças
+    # -------------------------------------------------------------------------------------------
 
-    # Remover duplicados, só manter paragens com diferenças
     diffs = diffs.drop_duplicates(subset=['stop_id'])
 
     return diffs, alerts_df
