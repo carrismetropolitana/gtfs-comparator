@@ -35,7 +35,7 @@ def merge_and_check_stop_sequences(gtfs_trips, gtfs_stop_times, gtfs_name, alert
 
 
 # ========================================================================================================================================================
-# 2️⃣ Check stop sequences between two plans
+# 2️⃣ Compara a sequênia de paragens entre planos
 # ========================================================================================================================================================
 
 def merge_and_check_stop_sequences_between_plans(
