@@ -27,8 +27,6 @@ Outputs:
 import pandas as pd
 from analysis.alerts import add_alert, init_alerts_df
 import numpy as np
-import logging
-
 
 # ========================================================================================================================================================
 # 0️⃣ Schema final — folha "Total circulações e VKM"
@@ -97,48 +95,11 @@ def calculate_service_days(calendar_dates, start_date, end_date):
 # 3️⃣ Calcula os VKM contratuais
 # ========================================================================================================================================================
 
-# def calculate_vkm(gtfs, start_date, end_date):
-#     trips_dist = calculate_trip_distance_km(gtfs['trips'], gtfs['shapes'])
-#     service_days = calculate_service_days(gtfs['calendar_dates'], start_date, end_date)
-
-#     return (trips_dist.merge(service_days, on='service_id', how='inner').assign(vkm=lambda df: df.distance_km * df.n_days))
-
 def calculate_vkm(gtfs, start_date, end_date):
-    # Distância por viagem (km)
     trips_dist = calculate_trip_distance_km(gtfs['trips'], gtfs['shapes'])
-
-    # Dias de serviço no intervalo
     service_days = calculate_service_days(gtfs['calendar_dates'], start_date, end_date)
 
-    # --- Validações importantes ---
-    if trips_dist.empty:
-        logging.warning("calculate_vkm: trips_dist está vazio. Verifique trips/shapes.")
-        return pd.DataFrame(columns=['service_id', 'distance_km', 'n_days', 'vkm'])
-
-    if service_days.empty:
-        logging.warning("calculate_vkm: service_days está vazio. Verifique calendar_dates e o intervalo de datas.")
-        return pd.DataFrame(columns=['service_id', 'distance_km', 'n_days', 'vkm'])
-
-    if 'service_id' not in trips_dist.columns:
-        logging.error("calculate_vkm: trips_dist não contém 'service_id'. Merge impossível.")
-        return pd.DataFrame(columns=['service_id', 'distance_km', 'n_days', 'vkm'])
-
-    if 'distance_km' not in trips_dist.columns:
-        logging.error("calculate_vkm: trips_dist não contém 'distance_km'.")
-        return pd.DataFrame(columns=['service_id', 'distance_km', 'n_days', 'vkm'])
-
-    # Garantir que distance_km é numérico
-    trips_dist['distance_km'] = pd.to_numeric(trips_dist['distance_km'], errors='coerce').fillna(0)
-
-    # --- Merge e cálculo do VKM ---
-    merged = trips_dist.merge(service_days, on='service_id', how='inner')
-
-    if merged.empty:
-        logging.warning("calculate_vkm: merge resultou vazio. Verifique service_id entre trips e calendar_dates.")
-        return pd.DataFrame(columns=['service_id', 'distance_km', 'n_days', 'vkm'])
-
-    return merged.assign(vkm=lambda df: df.distance_km * df.n_days)
-
+    return (trips_dist.merge(service_days, on='service_id', how='inner').assign(vkm=lambda df: df.distance_km * df.n_days))
 
 # ========================================================================================================================================================
 # 4️⃣ Calcula as circulações (existentes) por pattern_id; period; e day_type
@@ -260,31 +221,6 @@ def build_global_comparison(resumo_oferta, resumo_operacao):
 # 9️⃣ Resumo de contrato (VKM)
 # ========================================================================================================================================================
 
-# def build_contract_summary(
-#     gtfs_POferta,
-#     gtfs_POperacao,
-#     start_date,
-#     end_date,
-#     vkm_contrato,
-#     gtfs_offer_name,
-#     gtfs_operation_name
-# ):
-
-#     vkm_poferta_df = calculate_vkm(gtfs_POferta, start_date, end_date)
-#     vkm_poperacao_df = calculate_vkm(gtfs_POperacao, start_date, end_date)
-
-#     total_vkm_poferta = vkm_poferta_df['vkm'].sum()
-#     total_vkm_poperacao = vkm_poperacao_df['vkm'].sum()
-
-#     diff_poferta_pct = (total_vkm_poferta / vkm_contrato) * 100
-#     diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) * 100
-
-#     return pd.DataFrame({
-#         'Designação GTFS': [gtfs_offer_name, gtfs_operation_name, 'Contrato'],
-#         'VKM\n(do plano)': [total_vkm_poferta, total_vkm_poperacao, vkm_contrato],
-#         'Diferença relativa ao contrato (%)': [diff_poferta_pct, diff_poperacao_pct, 0]
-#     })
-
 def build_contract_summary(
     gtfs_POferta,
     gtfs_POperacao,
@@ -295,27 +231,20 @@ def build_contract_summary(
     gtfs_operation_name
 ):
 
-    # Calcular VKM para cada plano
     vkm_poferta_df = calculate_vkm(gtfs_POferta, start_date, end_date)
     vkm_poperacao_df = calculate_vkm(gtfs_POperacao, start_date, end_date)
 
-    # Garantir que a coluna existe e tratar NaNs
-    total_vkm_poferta = vkm_poferta_df.get('vkm', pd.Series(dtype=float)).fillna(0).sum()
-    total_vkm_poperacao = vkm_poperacao_df.get('vkm', pd.Series(dtype=float)).fillna(0).sum()
+    total_vkm_poferta = vkm_poferta_df['vkm'].sum()
+    total_vkm_poperacao = vkm_poperacao_df['vkm'].sum()
 
-    # Garantir que o VKM do contrato é válido
-    vkm_contrato = float(vkm_contrato) if vkm_contrato not in [None, 0, np.nan] else 0
-
-    # Evitar divisão por zero
-    diff_poferta_pct = (total_vkm_poferta / vkm_contrato) * 100 if vkm_contrato else 0
-    diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) * 100 if vkm_contrato else 0
+    diff_poferta_pct = (total_vkm_poferta / vkm_contrato) * 100
+    diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) * 100
 
     return pd.DataFrame({
         'Designação GTFS': [gtfs_offer_name, gtfs_operation_name, 'Contrato'],
         'VKM\n(do plano)': [total_vkm_poferta, total_vkm_poperacao, vkm_contrato],
         'Diferença relativa ao contrato (%)': [diff_poferta_pct, diff_poperacao_pct, 0]
     })
-
 
 # ========================================================================================================================================================
 # 1️⃣0️⃣ Período da análise
