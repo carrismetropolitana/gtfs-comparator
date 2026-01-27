@@ -1116,11 +1116,14 @@ def main() -> None:
     )
 
     grand_total_df = build_contract_summary(
-    merged_all=merged_all,
-    vkm_contrato=vkm_contrato,
-    gtfs_offer_name=GTFS_OFFERPLAN_NAME,
-    gtfs_operation_name=GTFS_OPERATIONPLAN_NAME
-)
+        gtfs_POferta=gtfs_oferta,
+        gtfs_POperacao=gtfs_operacao,
+        start_date=START_DATE,
+        end_date=END_DATE,
+        vkm_contrato=vkm_contrato,
+        gtfs_offer_name=GTFS_OFFERPLAN_NAME,
+        gtfs_operation_name=GTFS_OPERATIONPLAN_NAME
+    )
 
     analysis_period_df = build_analysis_period_table(
         START_DATE,
