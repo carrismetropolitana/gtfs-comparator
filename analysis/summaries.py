@@ -672,62 +672,91 @@ def build_global_comparison(resumo_oferta, resumo_operacao):
 # 📐 Resumo contratual (VKM OFICIAL)
 # =====================================================================================
 
+# def build_contract_summary(
+#     gtfs_POferta,
+#     gtfs_POperacao,
+#     start_date,
+#     end_date,
+#     vkm_contrato,
+#     gtfs_offer_name,
+#     gtfs_operation_name
+# ):
+#     logger.info("📐 A calcular resumo contratual (VKM)")
+
+#     vkm_poferta_df = calculate_vkm(
+#         gtfs_POferta,
+#         start_date,
+#         end_date
+#     )
+
+#     vkm_poperacao_df = calculate_vkm(
+#         gtfs_POperacao,
+#         start_date,
+#         end_date
+#     )
+
+#     total_vkm_poferta = _safe_numeric(
+#         vkm_poferta_df["vkm"].sum()
+#     )
+#     total_vkm_poperacao = _safe_numeric(
+#         vkm_poperacao_df["vkm"].sum()
+#     )
+
+#     vkm_contrato = _safe_numeric(vkm_contrato)
+
+#     diff_poferta_pct = (
+#         (total_vkm_poferta / vkm_contrato) * 100
+#         if vkm_contrato else 0
+#     )
+#     diff_poperacao_pct = (
+#         (total_vkm_poperacao / vkm_contrato) * 100
+#         if vkm_contrato else 0
+#     )
+
+#     return pd.DataFrame({
+#         "Designação GTFS": [
+#             gtfs_offer_name,
+#             gtfs_operation_name,
+#             "Contrato"
+#         ],
+#         "VKM\n(do plano)": [
+#             total_vkm_poferta,
+#             total_vkm_poperacao,
+#             vkm_contrato
+#         ],
+#         "Diferença relativa ao contrato (%)": [
+#             diff_poferta_pct,
+#             diff_poperacao_pct,
+#             0
+#         ]
+#     })
+
 def build_contract_summary(
-    gtfs_POferta,
-    gtfs_POperacao,
-    start_date,
-    end_date,
-    vkm_contrato,
-    gtfs_offer_name,
-    gtfs_operation_name
-):
-    logger.info("📐 A calcular resumo contratual (VKM)")
+    merged_all: pd.DataFrame,
+    vkm_contrato: float,
+    gtfs_offer_name: str,
+    gtfs_operation_name: str
+) -> pd.DataFrame:
 
-    vkm_poferta_df = calculate_vkm(
-        gtfs_POferta,
-        start_date,
-        end_date
-    )
-
-    vkm_poperacao_df = calculate_vkm(
-        gtfs_POperacao,
-        start_date,
-        end_date
-    )
-
-    total_vkm_poferta = _safe_numeric(
-        vkm_poferta_df["vkm"].sum()
-    )
-    total_vkm_poperacao = _safe_numeric(
-        vkm_poperacao_df["vkm"].sum()
-    )
-
-    vkm_contrato = _safe_numeric(vkm_contrato)
-
-    diff_poferta_pct = (
-        (total_vkm_poferta / vkm_contrato) * 100
-        if vkm_contrato else 0
-    )
-    diff_poperacao_pct = (
-        (total_vkm_poperacao / vkm_contrato) * 100
-        if vkm_contrato else 0
-    )
+    total_vkm_poferta = merged_all['VKM total ano_POferta'].sum()
+    total_vkm_poperação = merged_all['VKM total ano_POperação'].sum()
 
     return pd.DataFrame({
-        "Designação GTFS": [
+        '': ['Plano de Oferta', 'Plano de Operação', 'Contrato'],
+        'Designação GTFS': [
             gtfs_offer_name,
             gtfs_operation_name,
-            "Contrato"
+            ''
         ],
-        "VKM\n(do plano)": [
+        'VKM': [
             total_vkm_poferta,
-            total_vkm_poperacao,
+            total_vkm_poperação,
             vkm_contrato
         ],
-        "Diferença relativa ao contrato (%)": [
-            diff_poferta_pct,
-            diff_poperacao_pct,
-            0
+        'Diferença relativa ao contrato': [
+            total_vkm_poferta / vkm_contrato if vkm_contrato else None,
+            total_vkm_poperação / vkm_contrato if vkm_contrato else None,
+            '-'
         ]
     })
 
