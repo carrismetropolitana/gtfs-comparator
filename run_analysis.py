@@ -47,6 +47,7 @@ from config import (
     RESULT_NAME
 )
 
+print(TARGET_FOLDER, START_DATE, END_DATE)
 
 # ======================================================================================================================================================================
 #📥 Leitura e processamento GTFS
@@ -77,8 +78,11 @@ from analysis.circulation_time import compare_circulations_by_hour
 # ======================================================================================================================================================================
 
 from analysis.exports import save_to_excel,export_stop_sequence,export_total_circulacoes_vkm
-from config.settings import EXPORT_STOP_SEQUENCE_FILENAME
-from config.settings import EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME
+from config import EXPORT_STOP_SEQUENCE_FILENAME
+from config import EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME
+
+# from config.settings import EXPORT_STOP_SEQUENCE_FILENAME
+# from config.settings import EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME
 
 # ======================================================================================================================================================================
 # 🧾 Summaries
