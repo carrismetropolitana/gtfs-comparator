@@ -35,13 +35,7 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
     # 📌 Junta as paragens de oferta com operação por stop_id
     # -------------------------------------------------------------------------------------------
 
-    df_merged = pd.merge(
-        df_oferta,
-        df_operacao,
-        on='stop_id',
-        how='outer',
-        suffixes=('_POferta', '_POperacao')
-    )
+    df_merged = pd.merge(df_oferta, df_operacao, on='stop_id', how='outer', suffixes=('_POferta', '_POperacao'))
 
     # -------------------------------------------------------------------------------------------
     # 📌 Compara os campos: stop_name; stop_lat; stop_lon
@@ -59,14 +53,7 @@ def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
     # -------------------------------------------------------------------------------------------
         
         for _, row in df_merged[mask_diff].iterrows():
-            alerts_df = add_alert(
-                alerts_df,
-                "Plano de Operação",
-                "Paragens",
-                "MUITO GRAVE",
-                f"Paragens com diferenças: {col}",
-                row['stop_id']
-            )
+            alerts_df = add_alert(alerts_df, "Plano de Operação", "Paragens", "MUITO GRAVE", f"Paragens com diferenças: {col}", row['stop_id'])
 
     # -------------------------------------------------------------------------------------------
     # 📌 Remove duplicados. Lista apenas as paragens com diferenças

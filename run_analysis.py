@@ -161,15 +161,6 @@ stops_comparison_detalhada, alerts_df = compare_stops_between_plans(stops_oferta
 
 merged_routes, alerts_df = compare_routes(gtfs_oferta['routes'], gtfs_operacao['routes'], alerts_df)
 
-# ======================================================================================================================================================================
-# 🔟 Extensão - Shapes   -------confirmar -------
-# ======================================================================================================================================================================
-
-# extension_oferta, _, alerts_df = compare_extension(gtfs_oferta['trips'], gtfs_oferta['shapes'], gtfs_oferta['stop_times'], format_plan_name_for_alert("PLANO DE OFERTA"), alerts_df)
-# extension_operacao, _, alerts_df = compare_extension(gtfs_operacao['trips'], gtfs_operacao['shapes'], gtfs_operacao['stop_times'], format_plan_name_for_alert("PLANO DE OPERAÇÃO"), alerts_df)
-
-# extension_comparison_df, alerts_df = compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df)
-
 # ======================================================================================================
 # 🔟 Extensão - Shapes
 # ======================================================================================================
@@ -196,53 +187,17 @@ extension_comparison_df, alerts_df = compare_extension_between_plans(
     alerts_df
 )
 
-
-
 # ======================================================================================================================================================================
-# 1️⃣1️⃣ 🔥 Circulações por hora do dia (pattern_id + hora início)
-# ======================================================================================================================================================================
-
-#circulacoes_por_hora, alerts_df = compare_circulations_by_hour(os.path.join(TARGET_FOLDER, GTFS_OFFERPLAN_NAME), os.path.join(TARGET_FOLDER, GTFS_OPERATIONPLAN_NAME), alerts_df)
-
-# ======================================================================================================================================================================
-# 1️⃣2️⃣ Summaries
+# 1️⃣1️⃣ Summaries
 # ======================================================================================================================================================================
 
 merged_trips_oferta = compute_trips_per_pattern_day_type_period(gtfs_oferta['trips'], gtfs_oferta['calendar_dates'])
 merged_trips_operacao = compute_trips_per_pattern_day_type_period(gtfs_operacao['trips'], gtfs_operacao['calendar_dates'])
 
-# resumo_oferta = build_plan_summary(merged_trips_oferta, stops_count_oferta, extension_oferta, "Plano de Oferta")
-# resumo_operacao = build_plan_summary(merged_trips_operacao, stops_count_operacao, extension_operacao, "Plano de Operação")
-
-# resumo_oferta = build_plan_summary(merged_trips_oferta, stops_count_oferta, extension_oferta, "POferta")
-# resumo_operacao = build_plan_summary(merged_trips_operacao, stops_count_operacao, extension_operacao, "POperação")
-
-resumo_oferta = build_plan_summary(
-    merged_trips_oferta,
-    stops_count_oferta,
-    ext_shape_oferta,
-    "POferta"
-)
-
-resumo_operacao = build_plan_summary(
-    merged_trips_operacao,
-    stops_count_operacao,
-    ext_shape_operacao,
-    "POperação"
-)
-
+resumo_oferta = build_plan_summary(merged_trips_oferta, stops_count_oferta, ext_shape_oferta, "POferta")
+resumo_operacao = build_plan_summary(merged_trips_operacao, stops_count_operacao, ext_shape_operacao, "POperação")
 
 merged_all = build_global_comparison(resumo_oferta, resumo_operacao)
-
-# grand_total_df = build_contract_summary(
-#     gtfs_POferta = gtfs_oferta,
-#     gtfs_POperacao = gtfs_operacao,
-#     start_date = START_DATE,
-#     end_date = END_DATE,
-#     vkm_contrato = vkm_contrato,
-#     gtfs_offer_name = GTFS_OFFERPLAN_NAME,
-#     gtfs_operation_name = GTFS_OPERATIONPLAN_NAME
-# )
 
 grand_total_df = build_contract_summary(
     gtfs_oferta,
@@ -254,18 +209,17 @@ grand_total_df = build_contract_summary(
     GTFS_OPERATIONPLAN_NAME
 )
 
-
 analysis_period_df = build_analysis_period_table(START_DATE, END_DATE)
 
 # ======================================================================================================================================================================
-# 1️⃣3️⃣ Circulações por dia
+# 1️⃣2️⃣ Circulações por dia
 # ======================================================================================================================================================================
 
 pivot_dates_oferta, alerts_df = trips_per_date(gtfs_oferta['trips'], gtfs_oferta['calendar_dates'], START_DATE, END_DATE, alerts_df)
 pivot_dates_operacao, alerts_df = trips_per_date(gtfs_operacao['trips'], gtfs_operacao['calendar_dates'], START_DATE, END_DATE, alerts_df)
 
 # ======================================================================================================================================================================
-# 1️⃣4️⃣ Circulações por hora
+# 1️⃣3️⃣ Circulações por hora
 # ======================================================================================================================================================================
 
 circulacoes_por_hora, alerts_df = compare_circulations_by_hour(
@@ -275,7 +229,7 @@ circulacoes_por_hora, alerts_df = compare_circulations_by_hour(
 )
 
 # ======================================================================================================================================================================
-# 1️⃣5️⃣ Exportação 
+# 1️⃣4️⃣ Exportação 
 # ======================================================================================================================================================================
 
 save_to_excel(
@@ -300,13 +254,10 @@ save_to_excel(
 print(f"✅ Análise concluída. Resultados guardados em {excel_file_path}")
 
 # ======================================================================================================================================================================
-# 1️⃣6️⃣ Output extra – Sequência de Paragens (Plano de Oferta)
+# 1️⃣5️⃣ Output extra – Sequência de Paragens (Plano de Oferta)
 # ======================================================================================================================================================================
 
-PLANO_ANALISADO = "A1"
-
-export_filename = EXPORT_STOP_SEQUENCE_FILENAME.format(plan=PLANO_ANALISADO)
-export_path_seq = os.path.join(TARGET_FOLDER, f"{export_filename}.xlsx")
+export_path_seq = TARGET_FOLDER / f"{EXPORT_STOP_SEQUENCE_FILENAME}.xlsx"
 
 export_stop_sequence(
     df_seq=stop_sequence_oferta,
@@ -318,15 +269,11 @@ print(f"📄 Sequência de paragens exportada: {export_path_seq}")
 
 
 # ========================================================================================================================================================
-# 1️⃣7️⃣ Output extra – Total Circulações e VKM
+# 1️⃣6️⃣ Output extra – Total Circulações e VKM
 # ========================================================================================================================================================
 
-export_filename = EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME.format(plan=PLANO_ANALISADO)
-export_path_total = os.path.join(TARGET_FOLDER, f"{export_filename}.xlsx")
+export_path_total = TARGET_FOLDER / f"{EXPORT_TOTAL_CIRCULATIONS_VKM_FILENAME}.xlsx"
 
-export_total_circulacoes_vkm(
-    df=merged_all,
-    output_excel_path=export_path_total
-)
+export_total_circulacoes_vkm(df=merged_all, output_excel_path=export_path_total)
 
 print(f"📄 Total de Circulações e VKM exportados: {export_path_total}")

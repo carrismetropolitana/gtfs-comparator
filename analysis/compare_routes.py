@@ -75,13 +75,7 @@ def compare_routes(gtfs_POferta_path, gtfs_POperação_path, alerts_df):
     # -------------------------------------------------------------------------------------------
     # 📌 Junta as rotas dos dois GTFS
     # -------------------------------------------------------------------------------------------
-    merged_routes = pd.merge(
-        routes_gtfs_POferta,
-        routes_gtfs_POperação,
-        on='route_id',
-        suffixes=('_POferta', '_POperação'),
-        how='outer'
-    )
+    merged_routes = pd.merge(routes_gtfs_POferta, routes_gtfs_POperação, on='route_id', suffixes=('_POferta', '_POperação'), how='outer')
 
     # -------------------------------------------------------------------------------------------
     # 📌 Campos a comparar
