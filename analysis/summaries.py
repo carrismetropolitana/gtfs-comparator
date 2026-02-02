@@ -592,8 +592,8 @@ def build_contract_summary(gtfs_POferta=None, gtfs_POperacao=None, start_date=No
     vkm_poperacao_df = calculate_vkm(gtfs_POperacao, start_date, end_date)
     total_vkm_poferta = vkm_poferta_df['vkm'].sum()
     total_vkm_poperacao = vkm_poperacao_df['vkm'].sum()
-    diff_poferta_pct = (total_vkm_poferta / vkm_contrato) * 100
-    diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) * 100
+    diff_poferta_pct = (total_vkm_poferta / vkm_contrato) #* 100
+    diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) #* 100
     return pd.DataFrame({
         'Designação GTFS':[gtfs_offer_name, gtfs_operation_name,'Contrato'],
         'VKM\n(do plano)':[total_vkm_poferta,total_vkm_poperacao,vkm_contrato],

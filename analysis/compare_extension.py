@@ -185,7 +185,7 @@ def compare_extension_between_plans(gtfs_oferta, gtfs_operacao, alerts_df):
     df['Diferença (%)'] = (
         df['Diferença absoluta (km)']
         / df['shape_dist_traveled_POferta']
-    ) #* 100
+    ) 
 
     # ---------------------------------------------------------------------------------------------
     # Classificação
