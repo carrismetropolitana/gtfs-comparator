@@ -34,11 +34,19 @@ import numpy as np
 # 🔧 Configurações
 # ======================================================================================================================================================================
 
-from config.settings import (
+# from config.settings import (
+#     TARGET_FOLDER, START_DATE, END_DATE,
+#     GTFS_OFFERPLAN_NAME, GTFS_OPERATIONPLAN_NAME,
+#     RESULT_NAME
+# )
+
+
+from config import (
     TARGET_FOLDER, START_DATE, END_DATE,
     GTFS_OFFERPLAN_NAME, GTFS_OPERATIONPLAN_NAME,
     RESULT_NAME
 )
+
 
 # ======================================================================================================================================================================
 #📥 Leitura e processamento GTFS
