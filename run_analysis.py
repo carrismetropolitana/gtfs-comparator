@@ -337,9 +337,3 @@ print("\n📌 Resumo da análise:")
 print(f" - Foi identificado um total de {len(alerts_df)} alertas entre a Oferta e a Operação.")
 print(f" - Foram identificadas {len(gtfs_oferta['trips'])} circulações no Plano de Oferta")
 print(f" - Foram identificadas {len(gtfs_operacao['trips'])} circulações no Plano de Operação")
-
-diff_poferta_pct = (grand_total_df.loc[0, 'Diferença relativa ao contrato (%)'] * 100)
-diff_poperacao_pct = (grand_total_df.loc[1, 'Diferença relativa ao contrato (%)'] * 100)
-
-print(f" - No plano de Oferta foi identificado um valor de incumprimento relativo do contrato em cerca de {diff_poferta_pct:.2f}%")
-print(f" - No plano de Operação foi identificado um valor de incumprimento relativo do contrato em cerca de {diff_poperacao_pct:.2f}%")
