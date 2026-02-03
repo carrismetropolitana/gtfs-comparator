@@ -142,4 +142,4 @@ def save_to_excel(
         safe_to_excel(pivot_dates_oferta, 'Circulações por Data POferta')
         safe_to_excel(pivot_dates_operacao, 'Circulações por Data POperação')
 
-    print(f"Resultados guardados em {excel_file_path}")
+    #print(f"Resultados guardados em {excel_file_path}")

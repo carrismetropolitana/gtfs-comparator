@@ -1,4 +1,3 @@
-
 """
 Este módulo valida e compara as circulações por hora entre o Plano de Oferta e o Plano de Operação com base em dados GTFS.
 
@@ -25,8 +24,6 @@ import os
 import pandas as pd
 import numpy as np
 import zipfile
-from tqdm import tqdm
-
 from analysis.alerts import add_alert, normalize_plan_name
 
 # ========================================================================================================================================================
@@ -69,7 +66,12 @@ def prepare_df(dfs, label):
 
     stop_times["arrival_time"] = pd.to_timedelta(stop_times["arrival_time"], errors="coerce")
 
-    start_times = (stop_times.dropna(subset=["arrival_time"]).sort_values(["trip_id", "stop_sequence"]).groupby("trip_id", as_index=False)["arrival_time"].first())
+    start_times = (
+        stop_times.dropna(subset=["arrival_time"])
+        .sort_values(["trip_id", "stop_sequence"])
+        .groupby("trip_id", as_index=False)["arrival_time"]
+        .first()
+    )
 
     df = trips.merge(start_times, on="trip_id", how="inner")
     df = df.rename(columns={"arrival_time": f"Hora_{label}"})
@@ -81,20 +83,28 @@ def prepare_df(dfs, label):
 # ========================================================================================================================================================
 
 def add_date_to_df(df, calendar_dates_df):
-    calendar_dates_df = calendar_dates_df.copy()
-    calendar_dates_df["date"] = pd.to_datetime(calendar_dates_df["date"],  format="%Y%m%d", errors="coerce")
+    """
+    Adiciona ao ficheiro, o dia (date) a partir do service_id.
+    """
+
+    calendar_dates_df["date"] = pd.to_datetime(calendar_dates_df["date"], format="%Y%m%d", errors="coerce")
 
     calendar_dates_df = calendar_dates_df[calendar_dates_df["exception_type"] == 1]
 
-    return df.merge(calendar_dates_df[["service_id", "date"]],on="service_id", how="left")
+    return df.merge(calendar_dates_df[["service_id", "date"]], on="service_id", how="left")
 
 # ========================================================================================================================================================
-# 5️⃣ Processamento principal
+# 5️⃣ Processamento
 # ========================================================================================================================================================
 
-def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df):
+#def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df):
 
-    print("\n🔹 A comparar circulações por hora")
+
+def compare_circulations_by_hour(gtfs_oferta, gtfs_operacao, alerts_df):
+
+    # -------------------------------------------------------------------------------------------
+    # 0️⃣ Normalização de GTFS
+    # -------------------------------------------------------------------------------------------
 
     plan_oferta = normalize_plan_name("Oferta")
     plan_operacao = normalize_plan_name("Operacao")
@@ -102,52 +112,74 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
     # -------------------------------------------------------------------------------------------
     # 1️⃣ Lê ficheiros GTFS
     # -------------------------------------------------------------------------------------------
+    required_files = {
+    "trips.txt": "trips",
+    "stop_times.txt": "stop_times",
+    "calendar_dates.txt": "calendar_dates",
+    }
 
-    required_files = ["trips.txt", "stop_times.txt", "calendar_dates.txt"]
-    dfs_oferta, dfs_operacao = {}, {}
+    dfs_oferta = {}
+    dfs_operacao = {}
 
-    for path, dfs, plano in [
-        (gtfs_path_oferta, dfs_oferta, "Plano de Oferta"),
-        (gtfs_path_operacao, dfs_operacao, "Plano de Operação"),
+    for gtfs, dfs, plano in [
+        (gtfs_oferta, dfs_oferta, "Plano de Oferta"),
+        (gtfs_operacao, dfs_operacao, "Plano de Operação"),
     ]:
-        for fname in required_files:
+        for fname, key in required_files.items():
             try:
-                dfs[fname] = read_gtfs_file(path, fname)
-            except Exception:
+                dfs[fname] = gtfs[key].copy()
+            except KeyError:
                 add_alert(
                     alerts_df,
                     plano,
                     "Circulações por hora",
                     "MUITO GRAVE",
-                    f"Erro ao ler {fname}",
-                    path
+                    f"DataFrame '{key}' em falta no GTFS",
+                    plano
                 )
                 return pd.DataFrame(), alerts_df
 
     # -------------------------------------------------------------------------------------------
-    # 2️⃣ Preparação base
+    # 2️⃣ Prepara dataframes base
     # -------------------------------------------------------------------------------------------
 
     df_oferta = prepare_df(dfs_oferta, plan_oferta)
     df_operacao = prepare_df(dfs_operacao, plan_operacao)
 
     # -------------------------------------------------------------------------------------------
-    # 3️⃣ Datas
+    # 3️⃣ Adiciona a data
     # -------------------------------------------------------------------------------------------
 
-    df_oferta = add_date_to_df(df_oferta, dfs_oferta["calendar_dates.txt"]).dropna(subset=["date"])
-    df_operacao = add_date_to_df(df_operacao, dfs_operacao["calendar_dates.txt"]).dropna(subset=["date"])
+    df_oferta = add_date_to_df(df_oferta, dfs_oferta["calendar_dates.txt"])
+    df_operacao = add_date_to_df(df_operacao, dfs_operacao["calendar_dates.txt"])
+
+    df_oferta = df_oferta.dropna(subset=["date"])
+    df_operacao = df_operacao.dropna(subset=["date"])
 
     # -------------------------------------------------------------------------------------------
-    # 4️⃣ Circulações únicas (dia + pattern + hora)
+    # 4️⃣ Identifica as circulações únicas por dia e hora
+    #  “Para cada dia, percurso (pattern_id) e hora, conta apenas uma circulação.”
+    # “Se houver várias linhas com a mesma combinação de data + pattern + hora, mantém só uma.”
+    #
+    # #🔹 Por que não usar trip_id?
+    #
+    #         Porque:
+    #         Oferta e Operação não têm os mesmos trip_id
+    #
+    #         O que interessa é:
+    #         “Houve uma circulação às 08:00 neste percurso?”
+    #         “A que horas foi feita?”
     # -------------------------------------------------------------------------------------------
-
+    
     df_oferta = (df_oferta.drop_duplicates(subset=["date", "pattern_id", f"Hora_{plan_oferta}"]).rename(columns={f"Hora_{plan_oferta}": "hora_oferta"}).reset_index(drop=True))
     df_operacao = (df_operacao.drop_duplicates(subset=["date", "pattern_id", f"Hora_{plan_operacao}"]).rename(columns={f"Hora_{plan_operacao}": "hora_operacao"}).reset_index(drop=True))
 
     # -------------------------------------------------------------------------------------------
-    # 5️⃣ Pré-processamento
+    # 5️⃣ Pré processamento (merge_asof)
     # -------------------------------------------------------------------------------------------
+
+    df_oferta["date"] = pd.to_datetime(df_oferta["date"], errors="coerce")
+    df_operacao["date"] = pd.to_datetime(df_operacao["date"], errors="coerce")
 
     df_oferta["hora_oferta"] = pd.to_timedelta(df_oferta["hora_oferta"], errors="coerce")
     df_operacao["hora_operacao"] = pd.to_timedelta(df_operacao["hora_operacao"], errors="coerce")
@@ -155,8 +187,14 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
     df_oferta = df_oferta.dropna(subset=["hora_oferta"])
     df_operacao = df_operacao.dropna(subset=["hora_operacao"])
 
-    df_oferta = df_oferta.sort_values(["date", "pattern_id", "hora_oferta"])
-    df_operacao = df_operacao.sort_values(["date", "pattern_id", "hora_operacao"])
+    df_oferta = df_oferta.sort_values(["hora_oferta", "date", "pattern_id"]).reset_index(drop=True)
+    df_operacao = df_operacao.sort_values(["hora_operacao", "date", "pattern_id"]).reset_index(drop=True)
+
+    # print()
+    # print("Existem ", len(df_oferta), " de circulações únicas no plano de Oferta")
+    # print()
+    # print("Existem ", len(df_oferta), " de circulações únicas no plano de Operação")
+    # print()
 
     if df_oferta.empty or df_operacao.empty:
         add_alert(
@@ -170,9 +208,11 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
         return pd.DataFrame(), alerts_df
 
     # -------------------------------------------------------------------------------------------
-    # 6️⃣ Merge por horário mais próximo
+    # 6️⃣ Identifica o horário mais proximo
+    # Associa cada circulação do Plano de Oferta à circulação mais próxima no Plano de Operação,
+    # no mesmo dia e no mesmo percurso, dentro de uma tolerância de 30 minutos.
     # -------------------------------------------------------------------------------------------
-
+    
     df = pd.merge_asof(
         df_oferta,
         df_operacao,
@@ -183,20 +223,19 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
         tolerance=pd.Timedelta(minutes=30)
     )
 
-    df["Diferença_min"] = (df["hora_operacao"] - df["hora_oferta"]).dt.total_seconds() / 60
-
     # -------------------------------------------------------------------------------------------
-    # 7️⃣ Alertas (barra de progresso)
+    # 7️⃣ Indica a diferença (em minutos) entre planos
+    # -------------------------------------------------------------------------------------------
+
+    df["Diferença_min"] = (df["hora_operacao"] - df["hora_oferta"]).dt.total_seconds() / 60
+    
+    # -------------------------------------------------------------------------------------------
+    # 8️⃣ Gera alertas
     # -------------------------------------------------------------------------------------------
 
     alerts = df[df["hora_operacao"].isna() | df["Diferença_min"].abs().gt(0)]
 
-    for _, row in tqdm(
-        alerts.iterrows(),
-        total=len(alerts),
-        desc="A gerar alertas de circulações",
-        unit="alerta"
-    ):
+    for _, row in alerts.iterrows():
         contexto = f"{row['date'].strftime('%Y-%m-%d')} | {row['pattern_id']}"
 
         if pd.isna(row["hora_operacao"]):
@@ -221,7 +260,7 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
             )
 
     # -------------------------------------------------------------------------------------------
-    # 8️⃣ Formatação final
+    # 9️⃣ Formatação final
     # -------------------------------------------------------------------------------------------
 
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
@@ -230,4 +269,4 @@ def compare_circulations_by_hour(gtfs_path_oferta, gtfs_path_operacao, alerts_df
 
     df = df[["date", "pattern_id", "Hora_Oferta", "Hora_Operacao", "Diferença_min"]]
 
-    return df.sort_values(["date", "pattern_id", "Hora_Oferta"],na_position="last"), alerts_df
+    return df.sort_values(["date", "pattern_id", "Hora_Oferta"], na_position="last"), alerts_df
