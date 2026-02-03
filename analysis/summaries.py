@@ -223,11 +223,3 @@ def build_analysis_period_table(start_date,end_date):
         'Período da Análise':[f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]} a {end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"],
         'Data da Análise':[pd.Timestamp.now().strftime('%d/%m/%Y')]
     })
-
-
-# ========================================================================================================================================================
-# 1️⃣1️⃣ Estutura final
-# ========================================================================================================================================================
-
-# def build_detailed_plan_summaries(resumo_oferta, resumo_operacao):
-#     return resumo_oferta.copy(), resumo_operacao.copy()

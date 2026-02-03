@@ -98,24 +98,24 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
 
     
     compare_calendars = pd.merge(df_oferta, df_oper, on='date', how='outer', suffixes=('_POferta', '_POperacao'), indicator=True)
-
+    
+    # -------------------------------------------------------------------------------------------
     # Diferenças
-    compare_calendars['Diferenças_periodo'] = np.where(compare_calendars['period_POferta'] == compare_calendars['period_POperacao'], 'IGUAL', 'DIFERENTE'
-    )
-    compare_calendars['Diferenças_dia_tipo'] = np.where(
-        compare_calendars['day_type_POferta'] == compare_calendars['day_type_POperacao'],
-        'IGUAL',
-        'DIFERENTE'
-    )
+    # -------------------------------------------------------------------------------------------
 
+    compare_calendars['Diferenças_periodo'] = np.where(compare_calendars['period_POferta'] == compare_calendars['period_POperacao'], 'IGUAL', 'DIFERENTE')
+    compare_calendars['Diferenças_dia_tipo'] = np.where(compare_calendars['day_type_POferta'] == compare_calendars['day_type_POperacao'], 'IGUAL', 'DIFERENTE')
+
+    # -------------------------------------------------------------------------------------------
     # Presença do dia
-    compare_calendars['Presença'] = compare_calendars['_merge'].map({
-        'both': 'Ambos',
-        'left_only': 'Só Oferta',
-        'right_only': 'Só Operação'
-    })
+    # -------------------------------------------------------------------------------------------
 
+    compare_calendars['Presença'] = compare_calendars['_merge'].map({'both': 'Ambos', 'left_only': 'Só Oferta', 'right_only': 'Só Operação'})
+
+    # -------------------------------------------------------------------------------------------
     # Severidade
+    # -------------------------------------------------------------------------------------------
+
     def classify_severity(row):
         if row['_merge'] != 'both':
             return 'CRÍTICO'
@@ -127,7 +127,10 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
 
     compare_calendars['Severidade'] = compare_calendars.apply(classify_severity, axis=1)
 
+    # -------------------------------------------------------------------------------------------
     # Alertas
+    # -------------------------------------------------------------------------------------------
+
     for _, row in compare_calendars.iterrows():
         if row['Severidade'] != 'OK':
             alerts_df = add_alert(
@@ -139,7 +142,10 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
                 row['date'].strftime('%Y-%m-%d')
             )
 
+    # -------------------------------------------------------------------------------------------
     # Formatação final
+    # -------------------------------------------------------------------------------------------
+
     compare_calendars['Data'] = compare_calendars['date'].dt.strftime('%Y-%m-%d')
     compare_calendars = compare_calendars[
         [
