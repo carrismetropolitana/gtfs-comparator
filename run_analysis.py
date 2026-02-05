@@ -121,7 +121,7 @@ def log_done():
 # 1️⃣ Configuração Inicial
 # ========================================================================================================================================================
 
-log_step("A gerar todos os alertas detetados")
+log_step("[01/14] A gerar todos os alertas detetados")
 alerts_df = init_alerts_df()
 excel_file_path = os.path.join(TARGET_FOLDER, f"{RESULT_NAME}.xlsx")
 log_done()
@@ -130,7 +130,7 @@ log_done()
 # 2️⃣ Leitura GTFS
 # ========================================================================================================================================================
 
-log_step("A carregar GTFS do Plano de Oferta")
+log_step("[02/14] A carregar GTFS do Plano de Oferta")
 gtfs_oferta = read_gtfs(
     os.path.join(TARGET_FOLDER, GTFS_OFFERPLAN_NAME),
     calendar_dates_start_date=START_DATE,
@@ -138,7 +138,7 @@ gtfs_oferta = read_gtfs(
 )
 log_done()
 
-log_step("A carregar GTFS do Plano de Operação")
+log_step("[03/14] A carregar GTFS do Plano de Operação")
 gtfs_operacao = read_gtfs(
     os.path.join(TARGET_FOLDER, GTFS_OPERATIONPLAN_NAME),
     calendar_dates_start_date=START_DATE,
@@ -150,7 +150,7 @@ log_done()
 # 3️⃣ VKM Contratados
 # ========================================================================================================================================================
 
-log_step("A processar os VKM contratados")
+log_step("[04/14] A processar os VKM contratados")
 vkm_contrato = process_agency_file(gtfs_operacao["agency"])
 log_done()
 
@@ -158,14 +158,14 @@ log_done()
 # 4️⃣ Verificação de exception_type
 # ========================================================================================================================================================
 
-log_step("A verificar os exception_type do Plano de Oferta")
+log_step("[05/14] A verificar os exception_type do Plano de Oferta")
 alerts_df = check_exception_type(
     gtfs_oferta["calendar_dates"], START_DATE, END_DATE,
     PLAN_OFFER, alerts_df
 )
 log_done()
 
-log_step("A verificar os exception_type do Plano de Operação")
+log_step("[06/14] A verificar os exception_type do Plano de Operação")
 alerts_df = check_exception_type(
     gtfs_operacao["calendar_dates"], START_DATE, END_DATE,
     PLAN_OPERATION, alerts_df
@@ -176,7 +176,7 @@ log_done()
 # 5️⃣ Calendários
 # ========================================================================================================================================================
 
-log_step("A comparar os ficheiros calendar_dates.txt entre a Oferta e a Operação")
+log_step("[07/14] A comparar os ficheiros calendar_dates.txt entre a Oferta e a Operação")
 calendar_oferta = gtfs_oferta["calendar_dates"].copy()
 calendar_oferta["plan"] = PLAN_OFFER
 calendar_operacao = gtfs_operacao["calendar_dates"].copy()
@@ -196,7 +196,7 @@ log_done()
 # 6️⃣ Sequência de paragens
 # ========================================================================================================================================================
 
-log_step("A analisar a sequência de paragens entre a Oferta e a Operação")
+log_step("[08/14] A analisar a sequência de paragens entre a Oferta e a Operação")
 stops_count_oferta, stop_sequence_oferta, alerts_df = merge_and_check_stop_sequences(
     gtfs_oferta["trips"], gtfs_oferta["stop_times"],
     PLAN_OFFER, alerts_df
@@ -216,7 +216,7 @@ log_done()
 # 7️⃣ Paragens
 # ========================================================================================================================================================
 
-log_step("A comparar as diferenças nos ficheiros stops.txt entre a Oferta e a Operação")
+log_step("[09/14] A comparar as diferenças nos ficheiros stops.txt entre a Oferta e a Operação")
 stops_oferta = gtfs_oferta["stops"][["stop_id", "stop_name", "stop_lat", "stop_lon"]]
 stops_operacao = gtfs_operacao["stops"][["stop_id", "stop_name", "stop_lat", "stop_lon"]]
 stops_comparison_detalhada, alerts_df = compare_stops_between_plans(
@@ -228,7 +228,7 @@ log_done()
 # 8️⃣ Rotas
 # ========================================================================================================================================================
 
-log_step("A comparar as rotas de Oferta com as de Operação")
+log_step("[10/14] A comparar as rotas de Oferta com as de Operação")
 merged_routes, alerts_df = compare_routes(
     gtfs_oferta["routes"], gtfs_operacao["routes"], alerts_df
 )
@@ -238,7 +238,7 @@ log_done()
 # 9️⃣ Extensão
 # ========================================================================================================================================================
 
-log_step("A comparar a extensão das shapes entre a Oferta e a Operação")
+log_step("[11/14] A comparar a extensão das shapes entre a Oferta e a Operação")
 ext_shape_oferta, ext_stops_oferta, alerts_df = compare_extension(
     gtfs_oferta["trips"], gtfs_oferta["shapes"], gtfs_oferta["stop_times"], "POferta", alerts_df
 )
@@ -254,7 +254,7 @@ log_done()
 # 🔟 Summaries
 # ========================================================================================================================================================
 
-log_step("A consolidar e comparar as métricas de circulações por hora e VKM entre a Oferta e a Operação")
+log_step("[12/14] A consolidar e comparar as métricas de circulações por hora e VKM entre a Oferta e a Operação")
 merged_trips_oferta = compute_trips_per_pattern_day_type_period(
     gtfs_oferta["trips"], gtfs_oferta["calendar_dates"]
 )
@@ -274,7 +274,7 @@ log_done()
 # 1️⃣1️⃣ Circulações
 # ========================================================================================================================================================
 
-log_step("A Comparar todas as circulações por dia entre a Oferta e a Operação")
+log_step("[13/14] A Comparar todas as circulações por dia entre a Oferta e a Operação")
 pivot_dates_oferta, alerts_df = trips_per_date(
     gtfs_oferta["trips"], gtfs_oferta["calendar_dates"], START_DATE, END_DATE, alerts_df
 )
@@ -283,7 +283,7 @@ pivot_dates_operacao, alerts_df = trips_per_date(
 )
 log_done()
 
-log_step("A comparar todas as circulações por hora ... (este processo poderá demorar alguns minutos)")
+log_step("[14/14]A comparar todas as circulações por hora ... (este processo poderá demorar alguns minutos)")
 circulacoes_por_hora, alerts_df, total_oferta, total_operacao = compare_circulations_by_hour(
     gtfs_oferta,
     gtfs_operacao,
