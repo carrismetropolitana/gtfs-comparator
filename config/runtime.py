@@ -6,14 +6,10 @@ garantindo que a configuração é explicitamente definida antes de ser utilizad
 
 """
 
-# ========================================================================================================================================================
-# Inicia a None para garantir que a configuração é inicializada explicitamente
-# ========================================================================================================================================================
-
 _config = None
 
 # ========================================================================================================================================================
-# Inicializa a configuração global do módulo
+# 1️⃣ Inicia a configuração global do módulo
 # ========================================================================================================================================================
 
 def init_config(config_dict):
@@ -24,16 +20,15 @@ def init_config(config_dict):
     _config = config_dict
 
 # ========================================================================================================================================================
-# Função auxiliar para obter um valor da configuração através da respetiva chave
+# 2️⃣ Função auxiliar para obter um valor da configuração através da respetiva chave
 # ========================================================================================================================================================
 
 def get(key):
-    # Verifica se a configuração já foi inicializada
+    # Verifica se a configuração já foi iniciada
     if _config is None:
-        # Lança um erro explícito se alguém tentar aceder à configuração
-        # antes da sua inicialização
+        # Lança um erro explícito se alguém tentar aceder à configuração antes de ser iniciada
         raise RuntimeError(
-            "Configuração não inicializada. "
+            "Configuração não iniciada. "
             "Chama configurar() no run_analysis.py primeiro."
         )
 

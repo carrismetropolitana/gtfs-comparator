@@ -1,20 +1,15 @@
-# Comparador de Planos - GTFS
+# Copilot Instructions for GTFS Comparator
 
-Este comparador tem como objetivo identificar alterações/diferenças entre a oferta a operação através de ficheiros GTFS, gerando alertas.
+## Project Overview
+- This project compares GTFS (General Transit Feed Specification) offer vs operation plans and exports results to Excel, supporting contract validation and operational analysis.
+- The main orchestration script is `run_analysis.py`, which coordinates configuration, data loading, analysis, alerting, and export.
+- All core logic is modularized under the `analysis/` directory, with each file handling a specific comparison or export task.
 
-
-## Visão Geral do Comparador
-- Este programa analisa o GTFS (General Transit Feed Specification) de oferta e o GTFS de operação e exporta os resultados desta análise para um ficheiro Excel, auxiliando assim a validação da oferta planeada com a aquela que será a operação.
-- O script principal é o `run_analysis.py`, que coordena a configuração, o carregamento dos dados, a análise, os alertas e a exportação.
-- Toda a lógica central é modularizada no módulo `analysis/`, com cada ficheiro a tratar uma tarefa específica de comparação ou exportação.
-
-
-## Componentes principais
-- **Configuração**: Configuração interativa, apenas para sessão, através de `config/cli.py` (`configurar()`), com acesso global gerido por `config/runtime.py` (`init_config`, `get`).
-- **Módulos de análise**: cada ficheiro em `analysis/` (por exemplo, `compare_routes.py`, `compare_extension.py`, `summaries.py`) implementa uma única responsabilidade, retornando DataFrames e atualizando um DataFrame de alertas partilhado.
-- **Alerta**: Todas as inconsistências e erros são registados num DataFrame central usando auxiliares de `analysis/alerts.py`.
-- **Exportações**: Os resultados são gravados no Excel usando `analysis/exports.py`, com várias folhas e ficheiros extras opcionais para sequências de paragem e resumos de circulação
-
+## Key Components
+- **Configuration**: Interactive, session-only config via `config/cli.py` (`configurar()`), with global access managed by `config/runtime.py` (`init_config`, `get`).
+- **Analysis Modules**: Each file in `analysis/` (e.g., `compare_routes.py`, `compare_extension.py`, `summaries.py`) implements a single responsibility, returning DataFrames and updating a shared alerts DataFrame.
+- **Alerting**: All inconsistencies and errors are logged to a central DataFrame using helpers from `analysis/alerts.py`.
+- **Exports**: Results are written to Excel using `analysis/exports.py`, with multiple sheets and optional extra files for stop sequences and circulation summaries.
 
 ## Developer Workflow
 - **Setup**: Use a virtual environment and install dependencies from `requirements.txt` (pandas, numpy, openpyxl).

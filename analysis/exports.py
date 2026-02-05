@@ -49,6 +49,44 @@ def export_total_circulacoes_vkm(df, output_excel_path, sheet_name="Total circul
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
 # ========================================================================================================================================================
+# 3️⃣ circulações por hora por semestre
+# ========================================================================================================================================================
+
+def save_circulacoes_por_hora_por_trimestre(writer, df: pd.DataFrame):
+    """
+    Divide o DataFrame de circulações por hora em trimestres
+    para garantir que nenhuma folha ultrapassa o limite do Excel.
+    """
+    if df is None or df.empty:
+        return
+
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+    trimestres = {
+        "Circulações por hora (T1)": [1, 2, 3],
+        "Circulações por hora (T2)": [4, 5, 6],
+        "Circulações por hora (T3)": [7, 8, 9],
+        "Circulações por hora (T4)": [10, 11, 12],
+    }
+
+    for sheet_name, meses in trimestres.items():
+        df_trim = df[df["date"].dt.month.isin(meses)].copy()
+
+        if df_trim.empty:
+            continue
+
+        # Formata a data para evitar 00:00:00
+        df_trim["date"] = df_trim["date"].dt.strftime("%Y-%m-%d")
+
+        df_trim.to_excel(
+            writer,
+            sheet_name=sheet_name,
+            index=False
+        )
+
+
+# ========================================================================================================================================================
 # 3️⃣ Output principal - Guarda um ficheiro Excel, com todas as comparações
 # ========================================================================================================================================================
 
@@ -119,7 +157,7 @@ def save_to_excel(
         # Circulações por hora
         # -------------------------------------------------------------------------------------------
 
-        safe_to_excel(circulacoes_por_hora, 'Circulações por hora')
+        save_circulacoes_por_hora_por_trimestre(writer, circulacoes_por_hora)
 
         # -------------------------------------------------------------------------------------------
         # Sequências de paragens
@@ -141,5 +179,3 @@ def save_to_excel(
 
         safe_to_excel(pivot_dates_oferta, 'Circulações por Data POferta')
         safe_to_excel(pivot_dates_operacao, 'Circulações por Data POperação')
-
-    #print(f"Resultados guardados em {excel_file_path}")
