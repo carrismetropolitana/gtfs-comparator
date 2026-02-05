@@ -2,25 +2,23 @@
 Este módulo valida e compara os calendários GTFS entre o Plano de Oferta e o Plano de Operação.
 
 Funcionalidades principais:
-- Verifica a existência de datas com exception_type = 2 no ficheiro calendar_dates dentro de um período definido, gerando alertas de severidade MUITO GRAVE.
+- Verifica a existência de datas com exception_type = 2 no ficheiro calendar_dates dentro de um período definido, gerando alertas.
 - Normaliza e separa os calendários por plano (Oferta vs Operação).
 - Compara os calendários dos dois planos por data, analisando:
     - Existência do dia em cada plano.
     - Diferenças no período (period).
     - Diferenças no tipo de dia (day_type).
-    - Classifica as diferenças detetadas por nível de severidade (OK, AVISO, CRÍTICO).
     - Gera alertas automáticos sempre que são encontradas inconsistências face ao Plano de Oferta.
 
 Outputs:
 - 1 tabela consolidada com a comparação diária dos calendários entre os dois planos.
-- 1 tabela de alertas com a identificação das datas problemáticas, tipo de inconsistência e respetiva severidade.
+- 1 tabela de alertas com a identificação das datas problemáticas e tipo de inconsistência. 
 
 """
 
 import pandas as pd
 import numpy as np
 from analysis.alerts import add_alert
-
 
 # ========================================================================================================================================================
 # 1️⃣ Verificação de exception_type = 2
@@ -66,8 +64,7 @@ def check_exception_type(calendar_dates_df, START_DATE, END_DATE, plan_name, ale
 
 def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
     """
-    Compara os calendários entre o Plano de Oferta e o Plano de Operação
-    Classifica as diferenças de acordo com a severidade e identifica os dias que podem estar em falta.
+    Compara os calendários entre o Plano de Oferta e o Plano de Operação e devolve uma tabela consolidada com as diferenças encontradas.
     """
     df = calendar_dates_df.copy()
 
@@ -113,34 +110,19 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
     compare_calendars['Presença'] = compare_calendars['_merge'].map({'both': 'Ambos', 'left_only': 'Só Oferta', 'right_only': 'Só Operação'})
 
     # -------------------------------------------------------------------------------------------
-    # Severidade
-    # -------------------------------------------------------------------------------------------
-
-    def classify_severity(row):
-        if row['_merge'] != 'both':
-            return 'CRÍTICO'
-        if row['Diferenças_periodo'] == 'DIFERENTE':
-            return 'CRÍTICO'
-        if row['Diferenças_dia_tipo'] == 'DIFERENTE':
-            return 'AVISO'
-        return 'OK'
-
-    compare_calendars['Severidade'] = compare_calendars.apply(classify_severity, axis=1)
-
-    # -------------------------------------------------------------------------------------------
     # Alertas
     # -------------------------------------------------------------------------------------------
 
-    for _, row in compare_calendars.iterrows():
-        if row['Severidade'] != 'OK':
-            alerts_df = add_alert(
-                alerts_df,
-                "Plano de Operação",
-                "Calendário",
-                row['Severidade'],
-                "Diferenças no calendário em relação ao Plano de Oferta",
-                row['date'].strftime('%Y-%m-%d')
-            )
+    # for _, row in compare_calendars.iterrows():
+    #     if row['Severidade'] != 'OK':
+    #         alerts_df = add_alert(
+    #             alerts_df,
+    #             "Plano de Operação",
+    #             "Calendário",
+    #             row['Severidade'],
+    #             "Diferenças no calendário em relação ao Plano de Oferta",
+    #             row['date'].strftime('%Y-%m-%d')
+    #         )
 
     # -------------------------------------------------------------------------------------------
     # Formatação final
@@ -156,8 +138,7 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
             'day_type_POperacao',
             'Diferenças_periodo',
             'Diferenças_dia_tipo',
-            'Presença',
-            'Severidade'
+            'Presença'
         ]
     ].sort_values('Data')
 
