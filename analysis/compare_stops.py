@@ -24,7 +24,7 @@ from analysis.alerts import add_alert
 def compare_stops_between_plans(df_oferta, df_operacao, alerts_df=None):
     """
     Compara paragens entre Plano de Oferta e Plano de Operação.
-    Retorna somente as paragens com diferenças e adiciona alertas.
+    Devolve apenas as paragens com diferenças e adiciona alertas.
     """
 
     if alerts_df is None:

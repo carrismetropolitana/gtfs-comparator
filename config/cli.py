@@ -32,8 +32,8 @@ def build_default_result_name(gtfs_operationplan_name: str, start_date: str) -> 
     Ex: A2_analise_plano_janeiro_2026
     """
     try:
-        second_block = gtfs_operationplan_name.split("_")[1]  # ex: "42"
-        contrato = second_block[1]                             # ex: "2"
+        second_block = gtfs_operationplan_name.split("_")[1]
+        contrato = second_block[1]
     except Exception:
         contrato = "X"
 
@@ -55,7 +55,6 @@ def build_default_result_name(gtfs_operationplan_name: str, start_date: str) -> 
 def build_default_stop_sequence_name(gtfs_operationplan_name: str) -> str:
     """
     Constrói o nome default para a análise da sequência de paragens.
-    Ex: A2_Sequência_de_Paragens
     """
     try:
         second_block = gtfs_operationplan_name.split("_")[1]
@@ -73,7 +72,6 @@ def build_default_stop_sequence_name(gtfs_operationplan_name: str) -> str:
 def build_default_total_circulations_vkm_name(gtfs_operationplan_name: str) -> str:
     """
     Constrói o nome default para a análise do Total de Circulações e VKM.
-    Ex: A2_Total_de_Circulações_e_VKM
     """
     try:
         second_block = gtfs_operationplan_name.split("_")[1]

@@ -5,7 +5,6 @@ Permite iniciar a configuração uma única vez e aceder aos seus valores a part
 garantindo que a configuração é explicitamente definida antes de ser utilizada.
 
 """
-
 _config = None
 
 # ========================================================================================================================================================

@@ -110,21 +110,6 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
     compare_calendars['Presença'] = compare_calendars['_merge'].map({'both': 'Ambos', 'left_only': 'Só Oferta', 'right_only': 'Só Operação'})
 
     # -------------------------------------------------------------------------------------------
-    # Alertas
-    # -------------------------------------------------------------------------------------------
-
-    # for _, row in compare_calendars.iterrows():
-    #     if row['Severidade'] != 'OK':
-    #         alerts_df = add_alert(
-    #             alerts_df,
-    #             "Plano de Operação",
-    #             "Calendário",
-    #             row['Severidade'],
-    #             "Diferenças no calendário em relação ao Plano de Oferta",
-    #             row['date'].strftime('%Y-%m-%d')
-    #         )
-
-    # -------------------------------------------------------------------------------------------
     # Formatação final
     # -------------------------------------------------------------------------------------------
 

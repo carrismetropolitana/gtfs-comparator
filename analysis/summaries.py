@@ -29,42 +29,8 @@ from analysis.alerts import add_alert, init_alerts_df
 import numpy as np
 
 # ========================================================================================================================================================
-# 0️⃣ Schema final — folha "Total circulações e VKM"
+# 0️⃣ Preparação — sufixos e mapeamentos
 # ========================================================================================================================================================
-
-TOTAL_CIRCULACOES_VKM_COLUMNS = [
-    'Percurso',
-    'Periodo do ano',
-    'Dia tipo',
-
-    # -------- Oferta --------
-    'Num total circulações ano_POferta',
-    'Num total paragens_POferta',
-    'Sequencia paragens_POferta',
-    'Extensão shape_POferta',
-    'VKM total ano_POferta',
-
-    # -------- Operação --------
-    'Num total circulações ano_POperação',
-    'Num total paragens_POperação',
-    'Sequencia paragens_POperação',
-    'Extensão shape_POperação',
-    'VKM total ano_POperação',
-]
-
-COLUMN_RENAME_MAP = {
-    # -------- Oferta --------
-    'result_POferta': 'Num total circulações ano_POferta',
-    'stop_id_POferta': 'Num total paragens_POferta',
-    'stop_sequence_POferta': 'Sequencia paragens_POferta',
-    'shape_dist_traveled_POferta': 'Extensão shape_POferta',
-
-    # -------- Operação --------
-    'result_POperação': 'Num total circulações ano_POperação',
-    'stop_id_POperação': 'Num total paragens_POperação',
-    'stop_sequence_POperação': 'Sequencia paragens_POperação',
-    'shape_dist_traveled_POperação': 'Extensão shape_POperação',
-}
 
 PLAN_SUFFIX = {
     'PLANO DE OFERTA': 'POferta',
@@ -73,8 +39,25 @@ PLAN_SUFFIX = {
     'POperação': 'POperação'
 }
 
+TOTAL_CIRCULACOES_VKM_COLUMNS = [
+    'Percurso', 'Periodo do ano', 'Dia tipo',
+    'Num total circulações ano_POferta', 'Num total paragens_POferta', 'Sequencia paragens_POferta', 'Extensão shape_POferta', 'VKM total ano_POferta',
+    'Num total circulações ano_POperação', 'Num total paragens_POperação', 'Sequencia paragens_POperação', 'Extensão shape_POperação', 'VKM total ano_POperação',
+]
+
+COLUMN_RENAME_MAP = {
+    'result_POferta': 'Num total circulações ano_POferta',
+    'stop_id_POferta': 'Num total paragens_POferta',
+    'stop_sequence_POferta': 'Sequencia paragens_POferta',
+    'shape_dist_traveled_POferta': 'Extensão shape_POferta',
+    'result_POperação': 'Num total circulações ano_POperação',
+    'stop_id_POperação': 'Num total paragens_POperação',
+    'stop_sequence_POperação': 'Sequencia paragens_POperação',
+    'shape_dist_traveled_POperação': 'Extensão shape_POperação',
+}
+
 # ========================================================================================================================================================
-# 1️⃣ Calcula a distância real de cada trip
+# 1️⃣ Calcula distância de cada trip em km
 # ========================================================================================================================================================
 
 def calculate_trip_distance_km(trips, shapes):
@@ -82,37 +65,35 @@ def calculate_trip_distance_km(trips, shapes):
         shapes.groupby('shape_id')['shape_dist_traveled']
         .max()
         .reset_index()
-        .rename(columns={'shape_dist_traveled': 'distance_km'})
+        .rename(columns={'shape_dist_traveled':'distance'})
     )
-    # GTFS já vem em km, não dividir
-    return (
-        trips
-        .merge(shape_dist[['shape_id', 'distance_km']], on='shape_id', how='left')
-        [['trip_id', 'pattern_id', 'service_id', 'distance_km']]
-    )
+    # Converter metros para km se necessário
+    shape_dist['distance_km'] = shape_dist['distance'].apply(lambda x: x/1000 if x>1000 else x)
+    return trips.merge(shape_dist[['shape_id','distance_km']], on='shape_id', how='left')[['trip_id','pattern_id','service_id','distance_km']]
 
 # ========================================================================================================================================================
-# 2️⃣ Calcula o número de dias que cada serviço esteve ativo
+# 2️⃣ Calcula número de dias ativos de cada serviço
 # ========================================================================================================================================================
 
 def calculate_service_days(calendar_dates, start_date, end_date):
     calendar_dates = calendar_dates.copy()
     calendar_dates['date'] = pd.to_datetime(calendar_dates['date'])
-    mask = (calendar_dates['date'] >= pd.to_datetime(start_date)) & \
-           (calendar_dates['date'] <= pd.to_datetime(end_date))
+    mask = (calendar_dates['date'] >= pd.to_datetime(start_date)) & (calendar_dates['date'] <= pd.to_datetime(end_date))
     return calendar_dates[mask].groupby('service_id')['date'].nunique().reset_index(name='n_days')
 
 # ========================================================================================================================================================
-# 3️⃣ Calcula os VKM contratuais
+# 3️⃣ Calcula VKM
 # ========================================================================================================================================================
 
 def calculate_vkm(gtfs, start_date, end_date):
     trips_dist = calculate_trip_distance_km(gtfs['trips'], gtfs['shapes'])
     service_days = calculate_service_days(gtfs['calendar_dates'], start_date, end_date)
-    return trips_dist.merge(service_days, on='service_id', how='inner').assign(vkm=lambda df: df.distance_km * df.n_days)
+    vkm_df = trips_dist.merge(service_days, on='service_id', how='inner')
+    vkm_df['vkm'] = vkm_df['distance_km'] * vkm_df['n_days']
+    return vkm_df
 
 # ========================================================================================================================================================
-# 4️⃣ Circulações por pattern, day_type e período
+# 4️⃣ Calcula o número de trips por pattern/day_type/período
 # ========================================================================================================================================================
 
 def compute_trips_per_pattern_day_type_period(trips_df, calendar_dates_df):
@@ -124,98 +105,106 @@ def compute_trips_per_pattern_day_type_period(trips_df, calendar_dates_df):
     return merged_result
 
 # ========================================================================================================================================================
-# 5️⃣ Constrói resumo por plano (Oferta / Operação)
+# 5️⃣ Gera um resumo por plano
 # ========================================================================================================================================================
 
-def build_plan_summary(merged_trips_result, stops_comparison_result, extension_df, plan_name):
+def build_plan_summary(merged_trips_result, stops_count_df, extension_df, plan_name):
     suffix = PLAN_SUFFIX.get(plan_name, plan_name)
-    pivot_table = merged_trips_result.pivot_table(index=['pattern_id','period','day_type'], values='result', aggfunc='sum').reset_index()
-    
-    resumo = pd.merge(pivot_table, stops_comparison_result, on='pattern_id', how='outer')
-    resumo = pd.merge(resumo, extension_df, on='pattern_id', how='outer')
 
-    # Mapear temporariamente para nomes genéricos
-    rename_map = {
-        f'shape_dist_traveled_{suffix}':'shape_dist_traveled',
-        f'dist_traveled_stops_{suffix}':'dist_traveled_stops',
-        f'result_{suffix}':'result'
-    }
-    resumo = resumo.rename(columns=rename_map)
+    # -------------------------------------------------------------------------------------------
+    # 1. Normaliza colunas de paragens
+    # -------------------------------------------------------------------------------------------
+    stop_cols = stops_count_df.columns.tolist()
 
-    for col in ['shape_dist_traveled','dist_traveled_stops','result']:
-        if col not in resumo.columns:
-            resumo[col] = 0
-        resumo[col] = pd.to_numeric(resumo[col], errors='coerce').fillna(0)
+    if 'stop_id' in stop_cols:
+        stops_count_df = stops_count_df.rename(columns={'stop_id': f'stop_id_{suffix}'})
 
-    resumo['VKM total ano'] = resumo['shape_dist_traveled'] * resumo['result']
+    if 'stop_sequence' in stop_cols:
+        stops_count_df = stops_count_df.rename(columns={'stop_sequence': f'stop_sequence_{suffix}'})
 
-    # Mapear de volta para sufixos finais
+    # -------------------------------------------------------------------------------------------
+    # 2. Circulações
+    # -------------------------------------------------------------------------------------------
+    pivot_table = (
+        merged_trips_result
+        .pivot_table(
+            index=['pattern_id','period','day_type'],
+            values='result',
+            aggfunc='sum'
+        )
+        .reset_index()
+    )
+
+    resumo = pd.merge(pivot_table, stops_count_df, on='pattern_id', how='left')
+    resumo = pd.merge(resumo, extension_df, on='pattern_id', how='left')
+
+    # -------------------------------------------------------------------------------------------
+    # 3. Garante valores numéricos
+    # -------------------------------------------------------------------------------------------
+    resumo['result'] = pd.to_numeric(resumo['result'], errors='coerce').fillna(0)
+
+    for col in [
+        f'stop_id_{suffix}',
+        f'stop_sequence_{suffix}',
+        f'shape_dist_traveled_{suffix}'
+    ]:
+        if col in resumo.columns:
+            resumo[col] = pd.to_numeric(resumo[col], errors='coerce').fillna(0)
+
+    # -------------------------------------------------------------------------------------------
+    # 4. VKM
+    # -------------------------------------------------------------------------------------------
+    resumo[f'VKM total ano_{suffix}'] = (
+        resumo['result'] * resumo[f'shape_dist_traveled_{suffix}']
+    )
+
+    # -------------------------------------------------------------------------------------------
+    # 5. Final
+    # -------------------------------------------------------------------------------------------
     resumo = resumo.rename(columns={
-        'shape_dist_traveled': f'shape_dist_traveled_{suffix}',
-        'dist_traveled_stops': f'dist_traveled_stops_{suffix}',
         'result': f'result_{suffix}'
     })
-    resumo['Plano'] = plan_name
 
+    resumo['Plano'] = plan_name
     return resumo
 
 # ========================================================================================================================================================
-# 6️⃣ Alerta para exception_type = 2
-# ========================================================================================================================================================
-
-def add_exception_type_alerts(calendar_dates_gtfs, plan_name, alerts_df):
-    exception_dates = calendar_dates_gtfs[calendar_dates_gtfs['exception_type'] == 2]['date']
-    if not exception_dates.empty:
-        dates_formatted = ', '.join(pd.to_datetime(exception_dates).dt.strftime('%Y-%m-%d'))
-        alerts_df = add_alert(alerts_df, plan_name, "Datas com exception_type 2", "MUITO GRAVE", "Existem datas com exception_type = 2", dates_formatted)
-    return alerts_df
-
-# ========================================================================================================================================================
-# 7️⃣ Alerta detalhado por problema
-# ========================================================================================================================================================
-
-def build_alerts(calendar_dates_gtfs_POferta, calendar_dates_gtfs_POperação, alerts_df=None):
-    if alerts_df is None:
-        alerts_df = init_alerts_df()
-    for plan_name, df in [('PLANO DE OFERTA',calendar_dates_gtfs_POferta), ('PLANO DE OPERAÇÃO',calendar_dates_gtfs_POperação)]:
-        df_excep = df[df.get('exception_type',0)==2]
-        for _, row in df_excep.iterrows():
-            alerts_df = add_alert(alerts_df, plan_name, "Exception Type", 'MUITO GRAVE', "Data classificada com exception_type = 2", pd.to_datetime(row['date']).strftime('%Y-%m-%d'))
-    return alerts_df
-
-# ========================================================================================================================================================
-# 8️⃣ Comparação global — Oferta vs Operação
+# 6️⃣ Comparação global Oferta vs Operação
 # ========================================================================================================================================================
 
 def build_global_comparison(resumo_oferta, resumo_operacao):
-    merged_all = pd.merge(resumo_oferta, resumo_operacao, on=['pattern_id','period','day_type'], how='outer', suffixes=('_POferta','_POperação'))
-    merged_all.columns = [col.replace('_POperacao','_POperação') for col in merged_all.columns]
+    # Não usar 'suffixes' porque as colunas já têm os sufixos finais
+    merged_all = pd.merge(resumo_oferta, resumo_operacao, on=['pattern_id','period','day_type'], how='outer')
+    
+    # Ajustar nomes de colunas
     merged_all.rename(columns={'pattern_id':'Percurso','period':'Periodo do ano','day_type':'Dia tipo'}, inplace=True)
     merged_all.rename(columns=COLUMN_RENAME_MAP, inplace=True)
+    
+    # Garantir que todas as colunas do schema final existam
     for col in TOTAL_CIRCULACOES_VKM_COLUMNS:
         if col not in merged_all.columns:
             merged_all[col] = 0
+            
     return merged_all[TOTAL_CIRCULACOES_VKM_COLUMNS]
 
 # ========================================================================================================================================================
-# 9️⃣ Resumo de contrato (VKM)
+# 7️⃣ Resumo de contrato (VKM)
 # ========================================================================================================================================================
 
-def build_contract_summary(gtfs_POferta=None, gtfs_POperacao=None, start_date=None, end_date=None, vkm_contrato=None, gtfs_offer_name=None, gtfs_operation_name=None):
-    vkm_poferta_df = calculate_vkm(gtfs_POferta, start_date, end_date)
-    vkm_poperacao_df = calculate_vkm(gtfs_POperacao, start_date, end_date)
-    total_vkm_poferta = vkm_poferta_df['vkm'].sum()
-    total_vkm_poperacao = vkm_poperacao_df['vkm'].sum()
-    diff_poferta_pct = (total_vkm_poferta / vkm_contrato) #* 100
-    diff_poperacao_pct = (total_vkm_poperacao / vkm_contrato) #* 100
+def build_contract_summary(gtfs_POferta, gtfs_POperacao, start_date, end_date, vkm_contrato, gtfs_offer_name, gtfs_operation_name):
+    vkm_POferta_df = calculate_vkm(gtfs_POferta, start_date, end_date)
+    vkm_POperacao_df = calculate_vkm(gtfs_POperacao, start_date, end_date)
+    total_vkm_POferta = vkm_POferta_df['vkm'].sum()
+    total_vkm_POperacao = vkm_POperacao_df['vkm'].sum()
     return pd.DataFrame({
-        'Designação GTFS':[gtfs_offer_name, gtfs_operation_name,'Contrato'],
-        'VKM\n(do plano)':[total_vkm_poferta,total_vkm_poperacao,vkm_contrato],
-        'Diferença relativa ao contrato (%)':[diff_poferta_pct,diff_poperacao_pct,0]
+        '': ['Plano de Oferta','Plano de Operação','Contrato'],
+        'Designação GTFS':[gtfs_offer_name, gtfs_operation_name,''],
+        'VKM':[total_vkm_POferta,total_vkm_POperacao,vkm_contrato],
+        'Diferença relativa ao contrato':[total_vkm_POferta/vkm_contrato, total_vkm_POperacao/vkm_contrato,'-']
     })
 
 # ========================================================================================================================================================
-# 1️⃣0️⃣ Período da análise
+# 8️⃣ Período da análise
 # ========================================================================================================================================================
 
 def build_analysis_period_table(start_date,end_date):

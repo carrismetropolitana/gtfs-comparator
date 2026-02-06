@@ -29,7 +29,7 @@ import os
 import pandas as pd
 
 # ======================================================================================================
-# 🔧 Configuração INTERATIVA (SEM persistência)
+# 🔧 Configuração Interativa
 # ======================================================================================================
 
 from config import configurar, init_config
@@ -264,9 +264,9 @@ merged_trips_operacao = compute_trips_per_pattern_day_type_period(
 resumo_oferta = build_plan_summary(merged_trips_oferta, stops_count_oferta, ext_shape_oferta, "POferta")
 resumo_operacao = build_plan_summary(merged_trips_operacao, stops_count_operacao, ext_shape_operacao, "POperação")
 merged_all = build_global_comparison(resumo_oferta, resumo_operacao)
-grand_total_df = build_contract_summary(
-    gtfs_oferta, gtfs_operacao, START_DATE, END_DATE, vkm_contrato, GTFS_OFFERPLAN_NAME, GTFS_OPERATIONPLAN_NAME
-)
+
+grand_total_df = build_contract_summary(gtfs_oferta, gtfs_operacao, START_DATE, END_DATE, vkm_contrato, GTFS_OFFERPLAN_NAME, GTFS_OPERATIONPLAN_NAME)
+
 analysis_period_df = build_analysis_period_table(START_DATE, END_DATE)
 log_done()
 
@@ -283,7 +283,7 @@ pivot_dates_operacao, alerts_df = trips_per_date(
 )
 log_done()
 
-log_step("[14/14]A comparar todas as circulações por hora ... (este processo poderá demorar alguns minutos)")
+log_step("[14/14] A comparar todas as circulações por hora ... (este processo poderá demorar alguns minutos)")
 circulacoes_por_hora, alerts_df, total_oferta, total_operacao = compare_circulations_by_hour(
     gtfs_oferta,
     gtfs_operacao,
