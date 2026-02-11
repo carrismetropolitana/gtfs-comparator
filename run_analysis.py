@@ -28,9 +28,9 @@ Outputs:
 import os
 import pandas as pd
 
-# ======================================================================================================
+# ========================================================================================================================================================
 # 🔧 Configuração Interativa
-# ======================================================================================================
+# ========================================================================================================================================================
 
 from config import configurar, init_config
 
@@ -77,6 +77,7 @@ from analysis.compare_stop_sequences import merge_and_check_stop_sequences, merg
 from analysis.compare_stops import compare_stops_between_plans
 from analysis.compare_trips_per_date import trips_per_date
 from analysis.circulation_time import compare_circulations_by_hour
+from analysis.circulations import compare_total_circulations
 
 # ========================================================================================================================================================
 # 📤 Exportação
@@ -264,6 +265,11 @@ merged_trips_operacao = compute_trips_per_pattern_day_type_period(
 resumo_oferta = build_plan_summary(merged_trips_oferta, stops_count_oferta, ext_shape_oferta, "POferta")
 resumo_operacao = build_plan_summary(merged_trips_operacao, stops_count_operacao, ext_shape_operacao, "POperação")
 merged_all = build_global_comparison(resumo_oferta, resumo_operacao)
+
+
+merged_all, alerts_df = compare_total_circulations(merged_all, alerts_df)
+
+
 
 grand_total_df = build_contract_summary(gtfs_oferta, gtfs_operacao, START_DATE, END_DATE, vkm_contrato, GTFS_OFFERPLAN_NAME, GTFS_OPERATIONPLAN_NAME)
 

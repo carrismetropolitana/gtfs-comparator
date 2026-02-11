@@ -13,7 +13,6 @@ Funcionalidades principais:
 Outputs:
 - 1 tabela consolidada com a comparação diária dos calendários entre os dois planos.
 - 1 tabela de alertas com a identificação das datas problemáticas e tipo de inconsistência. 
-
 """
 
 import pandas as pd
@@ -57,14 +56,14 @@ def check_exception_type(calendar_dates_df, START_DATE, END_DATE, plan_name, ale
 
     return alerts_df
 
-
 # ========================================================================================================================================================
 # 2️⃣ Comparação de calendários
 # ========================================================================================================================================================
 
 def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
     """
-    Compara os calendários entre o Plano de Oferta e o Plano de Operação e devolve uma tabela consolidada com as diferenças encontradas.
+    Compara os calendários entre o Plano de Oferta e o Plano de Operação e devolve uma tabela consolidada 
+    com as diferenças encontradas, adicionando alertas quando houver divergências.
     """
     df = calendar_dates_df.copy()
 
@@ -93,26 +92,77 @@ def compare_calendar_dates_consolidated(calendar_dates_df, alerts_df):
     df_oferta = df_oferta[['date', 'period', 'day_type']].drop_duplicates()
     df_oper = df_oper[['date', 'period', 'day_type']].drop_duplicates()
 
-    
-    compare_calendars = pd.merge(df_oferta, df_oper, on='date', how='outer', suffixes=('_POferta', '_POperacao'), indicator=True)
-    
+    compare_calendars = pd.merge(
+        df_oferta, df_oper, on='date', how='outer', 
+        suffixes=('_POferta', '_POperacao'), indicator=True
+    )
+
     # -------------------------------------------------------------------------------------------
     # Diferenças
     # -------------------------------------------------------------------------------------------
-
-    compare_calendars['Diferenças_periodo'] = np.where(compare_calendars['period_POferta'] == compare_calendars['period_POperacao'], 'IGUAL', 'DIFERENTE')
-    compare_calendars['Diferenças_dia_tipo'] = np.where(compare_calendars['day_type_POferta'] == compare_calendars['day_type_POperacao'], 'IGUAL', 'DIFERENTE')
+    
+    compare_calendars['Diferenças_periodo'] = np.where(
+        compare_calendars['period_POferta'] == compare_calendars['period_POperacao'], 
+        'IGUAL', 
+        'DIFERENTE'
+    )
+    compare_calendars['Diferenças_dia_tipo'] = np.where(
+        compare_calendars['day_type_POferta'] == compare_calendars['day_type_POperacao'], 
+        'IGUAL', 
+        'DIFERENTE'
+    )
 
     # -------------------------------------------------------------------------------------------
     # Presença do dia
     # -------------------------------------------------------------------------------------------
+    
+    compare_calendars['Presença'] = compare_calendars['_merge'].map({
+        'both': 'Ambos', 
+        'left_only': 'Só Oferta', 
+        'right_only': 'Só Operação'
+    })
 
-    compare_calendars['Presença'] = compare_calendars['_merge'].map({'both': 'Ambos', 'left_only': 'Só Oferta', 'right_only': 'Só Operação'})
+    # -------------------------------------------------------------------------------------------
+    # Gerar alertas para divergências
+    # -------------------------------------------------------------------------------------------
+    
+    plan_name = "Calendários"  # Pode ajustar conforme necessário
+
+    for _, row in compare_calendars.iterrows():
+        date_str = row['date'].strftime('%Y-%m-%d')
+
+        if row['Diferenças_periodo'] == 'DIFERENTE':
+            alerts_df = add_alert(
+                alerts_df,
+                plan_name,
+                "Calendário",
+                "MÉDIO",
+                "Diferença de período entre Oferta e Operação",
+                date_str
+            )
+        if row['Diferenças_dia_tipo'] == 'DIFERENTE':
+            alerts_df = add_alert(
+                alerts_df,
+                plan_name,
+                "Calendário",
+                "MÉDIO",
+                "Diferença de tipo de dia entre Oferta e Operação",
+                date_str
+            )
+        if row['Presença'] != 'Ambos':
+            alerts_df = add_alert(
+                alerts_df,
+                plan_name,
+                "Calendário",
+                "MUITO GRAVE",
+                f"Data presente apenas no calendário {row['Presença']}",
+                date_str
+            )
 
     # -------------------------------------------------------------------------------------------
     # Formatação final
     # -------------------------------------------------------------------------------------------
-
+    
     compare_calendars['Data'] = compare_calendars['date'].dt.strftime('%Y-%m-%d')
     compare_calendars = compare_calendars[
         [
