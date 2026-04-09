@@ -22,6 +22,8 @@ Outputs:
 
 import pandas as pd
 import numpy as np
+from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.utils import get_column_letter
 
 # ========================================================================================================================================================
 # 1️⃣ Output extra - Sequência de Paragens
@@ -87,7 +89,64 @@ def save_circulacoes_por_hora_por_trimestre(writer, df: pd.DataFrame):
 
 
 # ========================================================================================================================================================
-# 3️⃣ Output principal - Guarda um ficheiro Excel, com todas as comparações
+# 3️⃣ Comparação de circulações por data entre planos (sheet auxiliar)
+# ========================================================================================================================================================
+
+def _add_trips_date_comparison_sheet(writer, pivot_oferta, pivot_operacao):
+    """
+    Adiciona um sheet ao ficheiro Excel que compara as circulações por data entre os dois planos.
+    Células com valores diferentes são destacadas a vermelho com o formato "POferta / POperação".
+    Células com valores iguais ficam em branco.
+    """
+    if pivot_oferta is None or pivot_oferta.empty or pivot_operacao is None or pivot_operacao.empty:
+        return
+
+    sheet_name = "Comparação Circulações por Data"
+    red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+    white_font = Font(color="FFFFFF", bold=True)
+    center_align = Alignment(horizontal="center", vertical="center")
+
+    oferta = pivot_oferta.set_index("pattern_id")
+    operacao = pivot_operacao.set_index("pattern_id")
+
+    all_patterns = sorted(set(oferta.index) | set(operacao.index))
+    all_dates = sorted(set(oferta.columns) | set(operacao.columns), key=lambda d: pd.to_datetime(d, format="%d/%m/%Y"))
+
+    oferta = oferta.reindex(index=all_patterns, columns=all_dates, fill_value=0)
+    operacao = operacao.reindex(index=all_patterns, columns=all_dates, fill_value=0)
+
+    comparison = pd.DataFrame("", index=all_patterns, columns=all_dates)
+    diff_mask = pd.DataFrame(False, index=all_patterns, columns=all_dates)
+
+    for col in all_dates:
+        val_o = oferta[col]
+        val_op = operacao[col]
+        mask = val_o != val_op
+        comparison.loc[mask, col] = val_o[mask].astype(str) + " / " + val_op[mask].astype(str)
+        diff_mask.loc[mask, col] = True
+
+    comparison = comparison.reset_index()
+    comparison.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    ws = writer.sheets[sheet_name]
+
+    for row_idx, pattern in enumerate(all_patterns):
+        excel_row = row_idx + 2  # row 1 = header
+        for col_idx, col in enumerate(all_dates):
+            excel_col = col_idx + 2  # col 1 = pattern_id
+            if diff_mask.loc[pattern, col]:
+                cell = ws.cell(row=excel_row, column=excel_col)
+                cell.fill = red_fill
+                cell.font = white_font
+                cell.alignment = center_align
+
+    for col_cells in ws.columns:
+        max_length = max((len(str(cell.value)) if cell.value else 0) for cell in col_cells)
+        ws.column_dimensions[get_column_letter(col_cells[0].column)].width = max(max_length + 2, 12)
+
+
+# ========================================================================================================================================================
+# 4️⃣ Output principal - Guarda um ficheiro Excel, com todas as comparações
 # ========================================================================================================================================================
 
 def save_to_excel(
@@ -179,3 +238,9 @@ def save_to_excel(
 
         safe_to_excel(pivot_dates_oferta, 'Circulações por Data POferta')
         safe_to_excel(pivot_dates_operacao, 'Circulações por Data POperação')
+
+        # -------------------------------------------------------------------------------------------
+        # Comparação de circulações por data entre planos
+        # -------------------------------------------------------------------------------------------
+
+        _add_trips_date_comparison_sheet(writer, pivot_dates_oferta, pivot_dates_operacao)

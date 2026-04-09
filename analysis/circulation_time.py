@@ -66,11 +66,12 @@ def prepare_df(dfs, label):
 
     stop_times["arrival_time"] = pd.to_timedelta(stop_times["arrival_time"], errors="coerce")
 
+    # drop_duplicates after sort is faster than groupby().first() for a simple "first row per key"
     start_times = (
         stop_times.dropna(subset=["arrival_time"])
         .sort_values(["trip_id", "stop_sequence"])
-        .groupby("trip_id", as_index=False)["arrival_time"]
-        .first()
+        .drop_duplicates(subset="trip_id", keep="first")
+        [["trip_id", "arrival_time"]]
     )
 
     df = trips.merge(start_times, on="trip_id", how="inner")
@@ -122,7 +123,7 @@ def compare_circulations_by_hour(gtfs_oferta, gtfs_operacao, alerts_df):
     df_operacao = prepare_df(dfs_operacao, plan_operacao)
 
     # -------------------------------------------------------------------------------------------
-    # 3️⃣ Adiciona a data
+    # 3️⃣ Adiciona a data (já retorna datetime64 — sem reconversão abaixo)
     # -------------------------------------------------------------------------------------------
     df_oferta = add_date_to_df(df_oferta, dfs_oferta["calendar_dates.txt"]).dropna(subset=["date"])
     df_operacao = add_date_to_df(df_operacao, dfs_operacao["calendar_dates.txt"]).dropna(subset=["date"])
@@ -142,8 +143,6 @@ def compare_circulations_by_hour(gtfs_oferta, gtfs_operacao, alerts_df):
     # -------------------------------------------------------------------------------------------
     # 5️⃣ Pré-processamento merge_asof
     # -------------------------------------------------------------------------------------------
-    df_oferta["date"] = pd.to_datetime(df_oferta["date"], errors="coerce")
-    df_operacao["date"] = pd.to_datetime(df_operacao["date"], errors="coerce")
     df_oferta["hora_oferta"] = pd.to_timedelta(df_oferta["hora_oferta"], errors="coerce")
     df_operacao["hora_operacao"] = pd.to_timedelta(df_operacao["hora_operacao"], errors="coerce")
 
@@ -174,19 +173,43 @@ def compare_circulations_by_hour(gtfs_oferta, gtfs_operacao, alerts_df):
     df["Diferença_min"] = (df["hora_operacao"] - df["hora_oferta"]).dt.total_seconds() / 60
 
     # -------------------------------------------------------------------------------------------
-    # 8️⃣ Gera alertas
+    # 8️⃣ Gera alertas — vectorizado (sem iterrows)
     # -------------------------------------------------------------------------------------------
-    alerts = df[df["hora_operacao"].isna() | df["Diferença_min"].abs().gt(0)]
-    for _, row in alerts.iterrows():
-        contexto = f"{row['date'].strftime('%Y-%m-%d')} | {row['pattern_id']}"
-        if pd.isna(row["hora_operacao"]):
-            add_alert(alerts_df, "Plano de Operação", "Circulações por hora", "GRAVE",
-                      "Circulação existente apenas no Plano de Oferta", contexto)
-        else:
-            diff = abs(int(row["Diferença_min"]))
-            grav = "MUITO GRAVE" if diff > 5 else "GRAVE"
-            add_alert(alerts_df, "Plano de Operação", "Circulações por hora", grav,
-                      f"Diferença de {diff} minutos", contexto)
+    problem_mask = df["hora_operacao"].isna() | df["Diferença_min"].abs().gt(0)
+    alerts_subset = df[problem_mask].copy()
+
+    if not alerts_subset.empty:
+        alerts_subset["_contexto"] = (
+            alerts_subset["date"].dt.strftime("%Y-%m-%d") + " | " +
+            alerts_subset["pattern_id"].astype(str)
+        )
+
+        missing = alerts_subset[alerts_subset["hora_operacao"].isna()]
+        diff = alerts_subset[alerts_subset["hora_operacao"].notna()].copy()
+
+        new_alert_frames = []
+
+        if not missing.empty:
+            new_alert_frames.append(pd.DataFrame({
+                "Plano": "Plano de Operação",
+                "Tipo de erro": "Circulações por hora",
+                "Gravidade": "GRAVE",
+                "Descrição": "Circulação existente apenas no Plano de Oferta",
+                "Diferença": missing["_contexto"].values,
+            }))
+
+        if not diff.empty:
+            diff_abs = diff["Diferença_min"].abs().fillna(0).astype(int)
+            new_alert_frames.append(pd.DataFrame({
+                "Plano": "Plano de Operação",
+                "Tipo de erro": "Circulações por hora",
+                "Gravidade": diff_abs.apply(lambda x: "MUITO GRAVE" if x > 5 else "GRAVE").values,
+                "Descrição": ("Diferença de " + diff_abs.astype(str) + " minutos").values,
+                "Diferença": diff["_contexto"].values,
+            }))
+
+        if new_alert_frames:
+            alerts_df = pd.concat([alerts_df] + new_alert_frames, ignore_index=True)
 
     # -------------------------------------------------------------------------------------------
     # 9️⃣ Formatação final

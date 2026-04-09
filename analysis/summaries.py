@@ -173,19 +173,41 @@ def build_plan_summary(merged_trips_result, stops_count_df, extension_df, plan_n
 # ========================================================================================================================================================
 
 def build_global_comparison(resumo_oferta, resumo_operacao):
+    resumo_oferta = resumo_oferta.copy()
+    resumo_operacao = resumo_operacao.copy()
+
+    join_cols = ['pattern_id', 'period', 'day_type']
+
+    # Garantir que as colunas de junção estão no mesmo formato (string, sem espaços)
+    # Isto porque ids dos períodos agora têm o formato alfanumérico
+    for col in join_cols:
+        resumo_oferta[col] = resumo_oferta[col].fillna('').astype(str).str.strip()
+        resumo_operacao[col] = resumo_operacao[col].fillna('').astype(str).str.strip()
+
     # Não usar 'suffixes' porque as colunas já têm os sufixos finais
-    merged_all = pd.merge(resumo_oferta, resumo_operacao, on=['pattern_id','period','day_type'], how='outer')
-    
+    merged_all = pd.merge(
+        resumo_oferta,
+        resumo_operacao,
+        on=join_cols,
+        how='outer'
+    )
+
     # Ajustar nomes de colunas
-    merged_all.rename(columns={'pattern_id':'Percurso','period':'Periodo do ano','day_type':'Dia tipo'}, inplace=True)
+    merged_all.rename(columns={
+        'pattern_id': 'Percurso',
+        'period': 'Periodo do ano',
+        'day_type': 'Dia tipo',
+    }, inplace=True)
+
     merged_all.rename(columns=COLUMN_RENAME_MAP, inplace=True)
-    
+
     # Garantir que todas as colunas do schema final existam
     for col in TOTAL_CIRCULACOES_VKM_COLUMNS:
         if col not in merged_all.columns:
             merged_all[col] = 0
-            
+
     return merged_all[TOTAL_CIRCULACOES_VKM_COLUMNS]
+
 
 # ========================================================================================================================================================
 # 7️⃣ Resumo de contrato (VKM)
